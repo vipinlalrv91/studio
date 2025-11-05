@@ -77,6 +77,9 @@ export default function FindRideTab() {
   const refreshState = () => {
     startTransition(() => {
       const storedNotifications = localStorage.getItem('notifications');
+      // Forcibly clear local storage for rides to ensure new data structure is used.
+      // This is a temporary fix for development. In a real app, you'd handle this with a migration.
+      localStorage.removeItem('rides');
       const storedRides = localStorage.getItem('rides');
       
       setCurrentNotifications(storedNotifications ? JSON.parse(storedNotifications) : mockNotifications);
@@ -146,7 +149,7 @@ export default function FindRideTab() {
 
   if (!user) return null;
 
-  const availableRides = currentRides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
+  const availableRides = currentRides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id && ride.startLocationCoords);
 
   const renderJoinButton = (rideId: string) => {
       const status = getRequestStatus(rideId);
