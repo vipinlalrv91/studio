@@ -17,11 +17,13 @@ import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { startRide, cancelSpot, cancelRide } from "../ride/actions";
 import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 export default function DashboardPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   if (!user) return null;
 
@@ -47,8 +49,9 @@ export default function DashboardPage() {
         title: "Ride Started!",
         description: "Passengers have been notified.",
       });
-      // Force a re-render by navigating to the same page
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } else {
       toast({
         title: "Error",
@@ -65,7 +68,9 @@ export default function DashboardPage() {
         title: "Spot Canceled",
         description: "You have been removed from the ride.",
       });
-      router.refresh();
+       startTransition(() => {
+        router.refresh();
+      });
     } else {
       toast({
         title: "Error",
@@ -82,7 +87,9 @@ export default function DashboardPage() {
         title: "Ride Canceled",
         description: "All passengers have been notified.",
       });
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     } else {
       toast({
         title: "Error",
@@ -128,7 +135,7 @@ export default function DashboardPage() {
                           </Link>
                       </Button>
                       {user.id === activeRide.driver.id && (
-                        <Button variant="destructive" onClick={() => handleCancelRide(activeRide.id)}>
+                        <Button variant="destructive" onClick={() => handleCancelRide(activeRide.id)} disabled={isPending}>
                           <AlertTriangle className="mr-2" />
                           Cancel Ride
                         </Button>
@@ -148,12 +155,12 @@ export default function DashboardPage() {
                   </CardTitle>
                   <div className="flex items-center gap-2">
                     {user.id === upcomingRide.driver.id ? (
-                      <Button onClick={() => handleStartRide(upcomingRide.id)}>
+                      <Button onClick={() => handleStartRide(upcomingRide.id)} disabled={isPending}>
                         <PlayCircle className="mr-2" />
                         Start Ride
                       </Button>
                     ) : (
-                       <Button variant="destructive" onClick={() => handleCancelSpot(upcomingRide.id)}>
+                       <Button variant="destructive" onClick={() => handleCancelSpot(upcomingRide.id)} disabled={isPending}>
                         <XCircle className="mr-2"/>
                         Cancel Spot
                       </Button>
