@@ -35,7 +35,6 @@ export default function DashboardPage() {
        } else {
           setRides(mockRides);
        }
-       router.refresh();
     });
   }
 
@@ -57,13 +56,13 @@ export default function DashboardPage() {
   const handleStartRide = async (rideId: string) => {
     const result = await startRide(rideId);
     if (result.success) {
-        const currentRides = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
-        const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+        const updatedRides = JSON.parse(JSON.stringify(rides));
+        const rideIndex = updatedRides.findIndex((r: Ride) => r.id === rideId);
         
         if (rideIndex !== -1) {
-            currentRides[rideIndex].status = 'active';
-            localStorage.setItem("rides", JSON.stringify(currentRides));
-            window.dispatchEvent(new Event('storage')); // Manually trigger storage event for this window
+            updatedRides[rideIndex].status = 'active';
+            localStorage.setItem("rides", JSON.stringify(updatedRides));
+            window.dispatchEvent(new Event('storage'));
             toast({
                 title: "Ride Started!",
                 description: "Passengers have been notified.",
@@ -78,16 +77,16 @@ export default function DashboardPage() {
 
   const handleCancelSpot = async (rideId: string) => {
       if (!user) return;
-      const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
-      const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+      const updatedRides = JSON.parse(JSON.stringify(rides));
+      const rideIndex = updatedRides.findIndex((r: Ride) => r.id === rideId);
 
       if (rideIndex !== -1) {
-        const passengerIndex = currentRides[rideIndex].passengers.findIndex(p => p.id === user.id);
+        const passengerIndex = updatedRides[rideIndex].passengers.findIndex((p:any) => p.id === user.id);
         if (passengerIndex !== -1) {
-            currentRides[rideIndex].passengers.splice(passengerIndex, 1);
-            currentRides[rideIndex].availableSeats += 1;
-            localStorage.setItem("rides", JSON.stringify(currentRides));
-            window.dispatchEvent(new Event('storage')); // Manually trigger storage event
+            updatedRides[rideIndex].passengers.splice(passengerIndex, 1);
+            updatedRides[rideIndex].availableSeats += 1;
+            localStorage.setItem("rides", JSON.stringify(updatedRides));
+            window.dispatchEvent(new Event('storage'));
             toast({ title: "Spot Canceled", description: "You have been removed from the ride." });
         } else {
              toast({ title: "Error", description: "You are not on this ride.", variant: "destructive" });
@@ -98,13 +97,13 @@ export default function DashboardPage() {
   }
 
   const handleCancelRide = async (rideId: string) => {
-    const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
-    const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+    const updatedRides = JSON.parse(JSON.stringify(rides));
+    const rideIndex = updatedRides.findIndex((r: Ride) => r.id === rideId);
 
     if (rideIndex !== -1) {
-        currentRides[rideIndex].status = 'completed'; // Or 'canceled' if we add that status
-        localStorage.setItem("rides", JSON.stringify(currentRides));
-        window.dispatchEvent(new Event('storage')); // Manually trigger storage event
+        updatedRides[rideIndex].status = 'completed'; // Or 'canceled' if we add that status
+        localStorage.setItem("rides", JSON.stringify(updatedRides));
+        window.dispatchEvent(new Event('storage'));
         toast({ title: "Ride Canceled", description: "The ride has been canceled." });
     } else {
         toast({ title: "Error", description: "Could not cancel the ride.", variant: "destructive" });
