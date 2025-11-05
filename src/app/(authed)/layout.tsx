@@ -25,20 +25,22 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useUser } from "@/hooks/use-user";
 import { Logo } from "@/components/logo";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export default function AuthedLayout({ children }: { children: React.ReactNode }) {
   const { user: mockUser } = useUser();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const currentTab = searchParams.get('tab');
 
   if (!mockUser) return null; // Or a loading state
 
   const navItems = [
-    { href: "/dashboard", icon: Home, label: "Dashboard" },
-    { href: "/dashboard?tab=find-ride", icon: Search, label: "Find Ride" },
-    { href: "/dashboard?tab=offer-ride", icon: Car, label: "Offer Ride" },
-    { href: "/dashboard?tab=notifications", icon: Bell, label: "Notifications" },
+    { href: "/dashboard", icon: Home, label: "Dashboard", tab: null },
+    { href: "/dashboard?tab=find-ride", icon: Search, label: "Find Ride", tab: "find-ride" },
+    { href: "/dashboard?tab=offer-ride", icon: Car, label: "Offer Ride", tab: "offer-ride" },
+    { href: "/dashboard?tab=notifications", icon: Bell, label: "Notifications", tab: "notifications" },
   ];
 
   return (
@@ -59,7 +61,7 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                    pathname === item.href && "text-primary bg-muted"
+                    (pathname === '/dashboard' && currentTab === item.tab) && "text-primary bg-muted"
                   )}
                 >
                   <item.icon className="h-4 w-4" />
@@ -111,7 +113,7 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
                     href={item.href}
                     className={cn(
                         "flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
-                         pathname === item.href && "bg-muted text-foreground"
+                         (pathname === '/dashboard' && currentTab === item.tab) && "bg-muted text-foreground"
                     )}
                     >
                     <item.icon className="h-5 w-5" />
@@ -152,19 +154,4 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                    <DropdownMenuItem>Profile</DropdownMenuItem>
-                    <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/"><LogOut className="mr-2 h-4 w-4"/>Log out</Link></DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-}
+              <DropdownMenuLabel>My Account</D
