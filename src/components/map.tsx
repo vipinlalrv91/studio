@@ -23,35 +23,42 @@ const Map: React.FC<MapProps> = ({ apiKey, lat, lng, zoom, markers }) => {
   const mapInstance = useRef<google.maps.Map | null>(null);
   const markerInstances = useRef<google.maps.Marker[]>([]);
 
+  // Effect to handle script loading and map initialization
   useEffect(() => {
-    const loadMap = () => {
-      if (window.google && window.google.maps) {
-        if (mapRef.current && !mapInstance.current) {
-          mapInstance.current = new window.google.maps.Map(mapRef.current, {
-            center: { lat, lng },
-            zoom,
-          });
-        }
+    const initMap = () => {
+      if (mapRef.current && !mapInstance.current) {
+        mapInstance.current = new window.google.maps.Map(mapRef.current, {
+          center: { lat, lng },
+          zoom,
+          disableDefaultUI: true,
+        });
       }
     };
 
-    if (!window.google || !window.google.maps) {
+    const scriptId = 'google-maps-script';
+    const existingScript = document.getElementById(scriptId);
+
+    if (!existingScript) {
       const script = document.createElement('script');
+      script.id = scriptId;
       script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
       script.async = true;
-      script.onload = loadMap;
+      script.onload = initMap;
       document.head.appendChild(script);
-    } else {
-      loadMap();
+    } else if (window.google && window.google.maps) {
+        initMap();
     }
   }, [apiKey, lat, lng, zoom]);
 
+  // Effect to update map center and zoom
   useEffect(() => {
     if (mapInstance.current) {
       mapInstance.current.setCenter({ lat, lng });
+      mapInstance.current.setZoom(zoom);
     }
-  }, [lat, lng]);
+  }, [lat, lng, zoom]);
 
+  // Effect to handle markers
   useEffect(() => {
     if (mapInstance.current && markers) {
       // Clear existing markers
