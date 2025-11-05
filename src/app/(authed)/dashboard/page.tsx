@@ -1,15 +1,20 @@
 
 "use client";
 
+import { Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DashboardTab from "./dashboard-tab";
 import FindRideTab from "./find-ride-tab";
 import OfferRideTab from "./offer-ride-tab";
 import NotificationsTab from "./notifications-tab";
 
-export default function DashboardPage() {
+function DashboardPageContent() {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') || 'dashboard';
+
   return (
-    <Tabs defaultValue="dashboard" className="flex flex-col flex-1">
+    <Tabs defaultValue={tab} className="flex flex-col flex-1">
       <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
         <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
         <TabsTrigger value="find-ride">Find Ride</TabsTrigger>
@@ -29,5 +34,13 @@ export default function DashboardPage() {
         <NotificationsTab />
       </TabsContent>
     </Tabs>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardPageContent />
+    </Suspense>
   );
 }

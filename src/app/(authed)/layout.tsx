@@ -36,9 +36,9 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
 
   const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard" },
-    { href: "/find-ride", icon: Search, label: "Find Ride" },
-    { href: "/offer-ride", icon: Car, label: "Offer Ride" },
-    { href: "/notifications", icon: Bell, label: "Notifications" },
+    { href: "/dashboard?tab=find-ride", icon: Search, label: "Find Ride" },
+    { href: "/dashboard?tab=offer-ride", icon: Car, label: "Offer Ride" },
+    { href: "/dashboard?tab=notifications", icon: Bell, label: "Notifications" },
   ];
 
   return (
