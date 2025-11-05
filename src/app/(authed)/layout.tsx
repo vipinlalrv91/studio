@@ -13,6 +13,7 @@ import {
   Search,
   Settings,
   User,
+  RadioTower
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,6 +51,13 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
+  const getPageTitle = () => {
+    if (pathname.includes('/ride/') && pathname.includes('/track')) {
+      return 'Live Ride Tracking';
+    }
+    return navItems.find(item => pathname.startsWith(item.href))?.label || 'Page';
+  }
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -65,7 +73,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarMenuItem key={item.href}>
                 <Link href={item.href} legacyBehavior passHref>
                   <SidebarMenuButton
-                    isActive={pathname === item.href}
+                    isActive={pathname.startsWith(item.href)}
                     tooltip={item.label}
                   >
                     <item.icon />
@@ -125,7 +133,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarTrigger className="md:hidden" />
           <div className="w-full flex-1">
             <h1 className="text-lg font-semibold md:text-xl capitalize">
-              {navItems.find(item => item.href === pathname)?.label || 'Page'}
+              {getPageTitle()}
             </h1>
           </div>
         </header>

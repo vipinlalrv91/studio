@@ -41,10 +41,10 @@ export const rides: Ride[] = [
     driver: users[1],
     startLocation: 'Sunnyvale, CA',
     destination: 'San Francisco, CA',
-    departureTime: new Date(new Date().getTime() + 2 * 60 * 60 * 1000), // 2 hours from now
+    departureTime: new Date(new Date().getTime() - 15 * 60 * 1000), // 15 minutes ago
     availableSeats: 2,
     passengers: [users[0]],
-    status: 'upcoming',
+    status: 'active',
   },
   {
     id: 'r2',
