@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
-import { notifications as mockNotifications, users, rides, Notification } from "@/lib/data";
+import { notifications as mockNotifications, users, rides, Ride, Notification } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
 import { Check, X, Car, Info, RadioTower } from 'lucide-react';
@@ -21,69 +22,122 @@ export default function NotificationsPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [currentRides, setCurrentRides] = useState<Ride[]>(rides);
 
   useEffect(() => {
     if (user) {
-      // In a real app, you'd fetch this. Here we filter the mock data.
-      const userNotifications = mockNotifications
-        .filter(n => n.userId === user.id)
-        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      // Load from localStorage on component mount
+      const storedNotifications = localStorage.getItem('notifications');
+      const storedRides = localStorage.getItem('rides');
+      
+      const allNotifications = storedNotifications 
+        ? JSON.parse(storedNotifications).map((n: any) => ({...n, timestamp: new Date(n.timestamp)}))
+        : mockNotifications;
+
+      if (storedRides) {
+        setCurrentRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
+      }
+
+      const userNotifications = allNotifications
+        .filter((n: Notification) => n.userId === user.id)
+        .sort((a: Notification, b: Notification) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setNotifications(userNotifications);
     }
   }, [user]);
 
+  const updateAndStoreNotifications = (newNotifications: Notification[]) => {
+      setNotifications(newNotifications.filter(n => n.userId === user?.id).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()));
+      
+      const stored = localStorage.getItem('notifications');
+      const allNotifs = stored ? JSON.parse(stored) : mockNotifications;
+      
+      // Update only relevant notifications, don't just overwrite
+      const updatedAllNotifs = allNotifs.map((n: Notification) => {
+          const updated = newNotifications.find(un => un.id === n.id);
+          return updated || n;
+      });
+
+      // Add potentially new notifications
+      newNotifications.forEach(nn => {
+        if (!updatedAllNotifs.find((n: Notification) => n.id === nn.id)) {
+          updatedAllNotifs.push(nn);
+        }
+      });
+
+      localStorage.setItem('notifications', JSON.stringify(updatedAllNotifs));
+  }
+
+  const updateAndStoreRides = (newRides: Ride[]) => {
+      setCurrentRides(newRides);
+      localStorage.setItem('rides', JSON.stringify(newRides));
+  }
+
   const handleApprove = (notificationId: string, rideId: string, requesterId: string) => {
-    const ride = rides.find(r => r.id === rideId);
+    let ride = currentRides.find(r => r.id === rideId);
     const requester = users.find(u => u.id === requesterId);
     
     if (ride && requester && ride.availableSeats > 0) {
-      ride.passengers.push(requester);
-      ride.availableSeats--;
-      
-      const notif = mockNotifications.find(n => n.id === notificationId);
-      if (notif) notif.data.status = 'approved';
+      const updatedRide = {
+        ...ride,
+        passengers: [...ride.passengers, requester],
+        availableSeats: ride.availableSeats - 1,
+      };
 
-      // Notify the requester
-      mockNotifications.push({
-        id: `n${mockNotifications.length + 1}`,
+      const updatedRides = currentRides.map(r => r.id === rideId ? updatedRide : r);
+      updateAndStoreRides(updatedRides);
+      
+      const newNotification: Notification = {
+        id: `n${notifications.length + mockNotifications.length + 1}`, // make id more robust
         userId: requester.id,
         read: false,
         message: `Your request to join the ride to ${ride.destination} has been approved.`,
         timestamp: new Date(),
         type: 'ride-update',
         data: { rideId: ride.id, status: 'approved' }
-      });
+      };
+
+      const stored = localStorage.getItem('notifications');
+      const allNotifs = stored ? JSON.parse(stored).map((n: any) => ({...n, timestamp: new Date(n.timestamp)})) : mockNotifications;
+      
+      const updatedNotifs = allNotifs.map((n: Notification) => 
+          n.id === notificationId ? {...n, data: {...n.data, status: 'approved'}} : n
+      );
+      updatedNotifs.push(newNotification);
+
+      updateAndStoreNotifications(updatedNotifs);
       
       toast({ title: "Request Approved!", description: `${requester.name} has been added to your ride.` });
-      // Refresh notifications state
-       setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, data: {...n.data, status: 'approved'}} : n));
     } else {
         toast({ title: "Approval Failed", description: "The ride is full or the request is invalid.", variant: "destructive" });
     }
   };
 
   const handleDecline = (notificationId: string, rideId: string, requesterId: string) => {
-     const ride = rides.find(r => r.id === rideId);
+     const ride = currentRides.find(r => r.id === rideId);
      const requester = users.find(u => u.id === requesterId);
 
      if (ride && requester) {
-        const notif = mockNotifications.find(n => n.id === notificationId);
-        if (notif) notif.data.status = 'declined';
-
-        // Notify the requester
-        mockNotifications.push({
-            id: `n${mockNotifications.length + 1}`,
+        const newNotification: Notification = {
+            id: `n${notifications.length + mockNotifications.length + 1}`,
             userId: requester.id,
             read: false,
             message: `Your request to join the ride to ${ride.destination} has been declined.`,
             timestamp: new Date(),
             type: 'ride-update',
             data: { rideId: ride.id, status: 'declined' }
-        });
+        };
+
+        const stored = localStorage.getItem('notifications');
+        const allNotifs = stored ? JSON.parse(stored).map((n: any) => ({...n, timestamp: new Date(n.timestamp)})) : mockNotifications;
+        
+        const updatedNotifs = allNotifs.map((n: Notification) => 
+            n.id === notificationId ? {...n, data: {...n.data, status: 'declined'}} : n
+        );
+        updatedNotifs.push(newNotification);
+        
+        updateAndStoreNotifications(updatedNotifs);
 
         toast({ title: "Request Declined" });
-        // Refresh notifications state
-        setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, data: {...n.data, status: 'declined'}} : n));
      }
   };
 
@@ -118,7 +172,7 @@ export default function NotificationsPage() {
   };
 
   const renderRideUpdate = (notification: Notification) => {
-      const ride = rides.find(r => r.id === notification.data.rideId);
+      const ride = currentRides.find(r => r.id === notification.data.rideId);
       const isRideStarted = notification.message.includes('has started');
 
       return (
@@ -148,7 +202,7 @@ export default function NotificationsPage() {
       switch(notification.type) {
           case 'ride-request': return renderRideRequest(notification);
           case 'ride-update': return renderRideUpdate(notification);
-          default: return null;
+          default: return <p>{notification.message}</p>;
       }
   }
 

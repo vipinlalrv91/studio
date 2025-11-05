@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { rides } from "@/lib/data";
+import { rides as mockRides, Ride } from "@/lib/data";
 import { format } from "date-fns";
 import { Car, Leaf, RadioTower, Clock, PlayCircle, XCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -17,13 +18,33 @@ import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { startRide, cancelSpot, cancelRide } from "../ride/actions";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 
 export default function DashboardPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [rides, setRides] = useState<Ride[]>(mockRides);
+
+  useEffect(() => {
+    const storedRides = localStorage.getItem("rides");
+    if (storedRides) {
+      setRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
+    }
+  }, [isPending]);
+  
+  const refreshState = () => {
+    startTransition(() => {
+       const storedRides = localStorage.getItem("rides");
+       if (storedRides) {
+          setRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
+       } else {
+          setRides(mockRides);
+       }
+       router.refresh();
+    });
+  }
 
   if (!user) return null;
 
@@ -49,9 +70,7 @@ export default function DashboardPage() {
         title: "Ride Started!",
         description: "Passengers have been notified.",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshState();
     } else {
       toast({
         title: "Error",
@@ -68,9 +87,7 @@ export default function DashboardPage() {
         title: "Spot Canceled",
         description: "You have been removed from the ride.",
       });
-       startTransition(() => {
-        router.refresh();
-      });
+       refreshState();
     } else {
       toast({
         title: "Error",
@@ -87,9 +104,7 @@ export default function DashboardPage() {
         title: "Ride Canceled",
         description: "All passengers have been notified.",
       });
-      startTransition(() => {
-        router.refresh();
-      });
+      refreshState();
     } else {
       toast({
         title: "Error",

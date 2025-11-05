@@ -1,32 +1,35 @@
+
 "use server";
 
-import { rides, notifications } from "@/lib/data";
+import { rides as mockRides, notifications as mockNotifications, Ride, Notification } from "@/lib/data";
+
+// In a real app, these would be database operations.
+// For this prototype, we'll simulate them and rely on client-side state management with localStorage.
+
+const getRides = (): Ride[] => {
+    // This function would fetch from a database. 
+    // In the future, we can read from localStorage on the server-side if needed, but it's complex.
+    // For now, actions will receive the state from the client or operate on a base state.
+    return mockRides;
+}
+
+const getNotifications = (): Notification[] => {
+    return mockNotifications;
+}
 
 export async function startRide(rideId: string) {
     try {
-        const ride = rides.find(r => r.id === rideId);
-        if (!ride) {
+        // In a real app, you'd fetch rides from a DB here.
+        // We'll rely on the client to send the current state or just update what will be stored in localStorage.
+        const rideToUpdate = mockRides.find(r => r.id === rideId);
+        if (!rideToUpdate) {
             return { success: false, error: "Ride not found." };
         }
-        if (ride.status !== 'upcoming') {
+        if (rideToUpdate.status !== 'upcoming') {
             return { success: false, error: "Ride cannot be started." };
         }
 
-        ride.status = 'active';
-
-        // Create notifications for passengers
-        ride.passengers.forEach(passenger => {
-            notifications.push({
-                id: `n${notifications.length + 1}`,
-                userId: passenger.id,
-                read: false,
-                message: `Your ride from ${ride.startLocation} to ${ride.destination} has started!`,
-                timestamp: new Date(),
-                type: 'ride-update',
-                data: { rideId: ride.id, status: 'started' }
-            });
-        });
-
+        // The client will update its state and persist to localStorage
         return { success: true };
     } catch (error) {
         console.error("Failed to start ride:", error);
@@ -36,31 +39,18 @@ export async function startRide(rideId: string) {
 
 export async function cancelSpot(rideId: string, userId: string) {
     try {
-        const ride = rides.find(r => r.id === rideId);
-        if (!ride) {
+        const rideToUpdate = mockRides.find(r => r.id === rideId);
+         if (!rideToUpdate) {
             return { success: false, error: "Ride not found." };
         }
 
-        const passengerIndex = ride.passengers.findIndex(p => p.id === userId);
+        const passengerIndex = rideToUpdate.passengers.findIndex(p => p.id === userId);
         if (passengerIndex === -1) {
             return { success: false, error: "You are not a passenger on this ride." };
         }
 
-        ride.passengers.splice(passengerIndex, 1);
-        ride.availableSeats++;
-
-        // Notify driver
-        notifications.push({
-            id: `n${notifications.length + 1}`,
-            userId: ride.driver.id,
-            read: false,
-            message: `${userId} has canceled their spot on your ride to ${ride.destination}.`,
-            timestamp: new Date(),
-            type: 'ride-update',
-            data: { rideId: ride.id, status: 'canceled' }
-        });
-        
-        return { success: true };
+        // The client will update its state and persist to localStorage
+        return { success: true, driverId: rideToUpdate.driver.id, destination: rideToUpdate.destination };
 
     } catch (error) {
          console.error("Failed to cancel spot:", error);
@@ -70,30 +60,16 @@ export async function cancelSpot(rideId: string, userId: string) {
 
 export async function cancelRide(rideId: string) {
     try {
-        const ride = rides.find(r => r.id === rideId);
-        if (!ride) {
+        const rideToUpdate = mockRides.find(r => r.id === rideId);
+        if (!rideToUpdate) {
             return { success: false, error: "Ride not found." };
         }
 
-        if (ride.status !== 'active') {
+        if (rideToUpdate.status !== 'active') {
              return { success: false, error: "Only active rides can be canceled." };
         }
-
-        ride.status = 'completed'; // Or a new 'canceled' status
-
-         // Notify passengers
-        ride.passengers.forEach(passenger => {
-            notifications.push({
-                id: `n${notifications.length + 1}`,
-                userId: passenger.id,
-                read: false,
-                message: `The ride from ${ride.startLocation} to ${ride.destination} has been canceled by the driver.`,
-                timestamp: new Date(),
-                type: 'ride-update',
-                data: { rideId: ride.id, status: 'driver-canceled' }
-            });
-        });
-
+       
+        // The client will update its state and persist to localStorage
         return { success: true };
     } catch (error) {
         console.error("Failed to cancel ride:", error);

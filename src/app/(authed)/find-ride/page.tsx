@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useEffect, useTransition } from "react";
 import {
   Card,
   CardContent,
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { rides, notifications } from "@/lib/data";
+import { rides, notifications as mockNotifications, Notification } from "@/lib/data";
 import { format } from "date-fns";
 import { Car, Users, Clock, Check, Hourglass, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,17 +22,34 @@ import { useUser } from "@/hooks/use-user";
 export default function FindRidePage() {
   const { toast } = useToast();
   const { user } = useUser();
+  const [isPending, startTransition] = useTransition();
+  const [currentNotifications, setCurrentNotifications] = useState<Notification[]>(mockNotifications);
+
+  useEffect(() => {
+    // Load notifications from localStorage on component mount
+    const storedNotifications = localStorage.getItem('notifications');
+    if (storedNotifications) {
+      setCurrentNotifications(JSON.parse(storedNotifications).map((n: any) => ({...n, timestamp: new Date(n.timestamp)})));
+    }
+  }, []);
+
+  const updateAndStoreNotifications = (newNotifications: Notification[]) => {
+      setCurrentNotifications(newNotifications);
+      localStorage.setItem('notifications', JSON.stringify(newNotifications));
+      startTransition(() => {}); // Re-render components using this state
+  }
+
+
   if (!user) return null;
 
   const availableRides = rides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
 
   const handleRequestJoin = (rideId: string) => {
     // In a real app, this would be an API call.
-    // For this demo, we'll just add a notification.
     const ride = rides.find(r => r.id === rideId);
     if (ride) {
         // Prevent duplicate requests
-        const existingNotification = notifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
+        const existingNotification = currentNotifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
         if (existingNotification) {
              toast({
                 title: "Request already sent!",
@@ -41,15 +59,18 @@ export default function FindRidePage() {
             return;
         }
 
-        notifications.push({
-            id: `n${notifications.length + 1}`,
+        const newNotification: Notification = {
+            id: `n${currentNotifications.length + 1}`,
             userId: ride.driver.id, // Notification for the driver
             read: false,
             message: `${user.name} wants to join your ride from ${ride.startLocation} to ${ride.destination}.`,
             timestamp: new Date(),
             type: 'ride-request',
             data: { rideId: ride.id, requesterId: user.id, status: 'pending' }
-        });
+        };
+        
+        const updatedNotifications = [...currentNotifications, newNotification];
+        updateAndStoreNotifications(updatedNotifications);
         
         toast({
         title: "Request Sent!",
@@ -59,7 +80,7 @@ export default function FindRidePage() {
   }
 
   const getRequestStatus = (rideId: string) => {
-      const notification = notifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
+      const notification = currentNotifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
       return notification ? notification.data.status : null;
   }
 
