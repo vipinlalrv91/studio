@@ -15,14 +15,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
 
 export default function TrackRidePage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [ride, setRide] = useState<Ride | undefined>(undefined);
 
   useEffect(() => {
     const storedRides = localStorage.getItem("rides");
     const allRides: Ride[] = storedRides ? JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})) : mockRides;
-    const currentRide = allRides.find((r) => r.id === params.id);
+    const currentRide = allRides.find((r) => r.id === id);
     setRide(currentRide);
-  }, [params.id]);
+  }, [id]);
 
 
   if (!ride) {
