@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Car, MapPin, Flag, Building, Home } from 'lucide-react';
+import { Car, Building, Home } from 'lucide-react';
 import { Ride } from '@/lib/data';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
@@ -72,10 +72,13 @@ const SvgMap: React.FC<{ progress: number }> = ({ progress }) => {
 
 const MapComponent: React.FC<MapComponentProps> = ({ ride }) => {
   const [progress, setProgress] = useState(0);
+  const [eta, setEta] = useState<Date | null>(null);
+  const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    // Reset progress if ride changes
+    // This effect runs only on the client after hydration
     setProgress(0);
+    const totalDurationMinutes = 30; // Mock duration
 
     const interval = setInterval(() => {
       setProgress(prev => {
@@ -85,16 +88,20 @@ const MapComponent: React.FC<MapComponentProps> = ({ ride }) => {
         }
         // Simulate faster progress
         const increment = Math.random() * 3 + 1; // 1 to 4
-        return Math.min(prev + increment, 100);
+        const newProgress = Math.min(prev + increment, 100);
+
+        // Calculate ETA inside the client-side effect
+        const currentMinutesLeft = Math.round(totalDurationMinutes * (1 - newProgress / 100));
+        setMinutesLeft(currentMinutesLeft);
+        setEta(new Date(Date.now() + currentMinutesLeft * 60 * 1000));
+        
+        return newProgress;
       });
     }, 1500); // Update every 1.5 seconds
 
     return () => clearInterval(interval);
   }, [ride.id]);
   
-  const totalDurationMinutes = 30; // Mock duration
-  const minutesLeft = Math.round(totalDurationMinutes * (1 - progress / 100));
-  const estimatedTimeOfArrival = new Date(Date.now() + minutesLeft * 60 * 1000);
 
   return (
     <div className="relative w-full aspect-[16/10] rounded-lg overflow-hidden border bg-card">
@@ -109,8 +116,8 @@ const MapComponent: React.FC<MapComponentProps> = ({ ride }) => {
                 </div>
                 <Progress value={progress} className="h-2 mb-3" />
                 <div className="flex justify-between text-xs sm:text-sm text-muted-foreground">
-                    <span>{`ETA: ${estimatedTimeOfArrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}</span>
-                    <span>{progress < 100 ? `${minutesLeft} min left` : 'Arrived'}</span>
+                    <span>{eta ? `ETA: ${eta.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Calculating ETA...'}</span>
+                    <span>{minutesLeft !== null ? (progress < 100 ? `${minutesLeft} min left` : 'Arrived') : ''}</span>
                 </div>
             </CardContent>
           </Card>

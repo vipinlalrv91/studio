@@ -11,11 +11,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { rides } from "@/lib/data";
 import { format } from "date-fns";
-import { Car, Leaf, RadioTower, Clock, PlayCircle, XCircle } from "lucide-react";
+import { Car, Leaf, RadioTower, Clock, PlayCircle, XCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
-import { startRide, cancelSpot } from "../ride/actions";
+import { startRide, cancelSpot, cancelRide } from "../ride/actions";
 import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
@@ -75,6 +75,23 @@ export default function DashboardPage() {
     }
   }
 
+  const handleCancelRide = async (rideId: string) => {
+    const result = await cancelRide(rideId);
+    if (result.success) {
+      toast({
+        title: "Ride Canceled",
+        description: "All passengers have been notified.",
+      });
+      router.refresh();
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card className="lg:col-span-2">
@@ -103,12 +120,20 @@ export default function DashboardPage() {
                         <span>Driver: {activeRide.driver.name}</span>
                       </div>
                     </div>
-                     <Button asChild>
-                        <Link href={`/ride/${activeRide.id}/track`}>
-                            <RadioTower className="mr-2" />
-                            Track Live
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button asChild>
+                          <Link href={`/ride/${activeRide.id}/track`}>
+                              <RadioTower className="mr-2" />
+                              Track Live
+                          </Link>
+                      </Button>
+                      {user.id === activeRide.driver.id && (
+                        <Button variant="destructive" onClick={() => handleCancelRide(activeRide.id)}>
+                          <AlertTriangle className="mr-2" />
+                          Cancel Ride
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
               </Card>

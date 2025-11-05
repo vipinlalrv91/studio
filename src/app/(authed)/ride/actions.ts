@@ -67,3 +67,36 @@ export async function cancelSpot(rideId: string, userId: string) {
         return { success: false, error: "An unexpected error occurred." };
     }
 }
+
+export async function cancelRide(rideId: string) {
+    try {
+        const ride = rides.find(r => r.id === rideId);
+        if (!ride) {
+            return { success: false, error: "Ride not found." };
+        }
+
+        if (ride.status !== 'active') {
+             return { success: false, error: "Only active rides can be canceled." };
+        }
+
+        ride.status = 'completed'; // Or a new 'canceled' status
+
+         // Notify passengers
+        ride.passengers.forEach(passenger => {
+            notifications.push({
+                id: `n${notifications.length + 1}`,
+                userId: passenger.id,
+                read: false,
+                message: `The ride from ${ride.startLocation} to ${ride.destination} has been canceled by the driver.`,
+                timestamp: new Date(),
+                type: 'ride-update',
+                data: { rideId: ride.id, status: 'driver-canceled' }
+            });
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Failed to cancel ride:", error);
+        return { success: false, error: "An unexpected error occurred." };
+    }
+}
