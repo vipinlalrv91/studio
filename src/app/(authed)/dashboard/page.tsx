@@ -10,13 +10,12 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { rides as mockRides, Ride } from "@/lib/data";
+import { Ride, rides as mockRides } from "@/lib/data";
 import { format } from "date-fns";
 import { Car, Leaf, RadioTower, Clock, PlayCircle, XCircle, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
-import { startRide, cancelSpot, cancelRide } from "../ride/actions";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, useEffect } from "react";
 
@@ -27,13 +26,6 @@ export default function DashboardPage() {
   const [isPending, startTransition] = useTransition();
   const [rides, setRides] = useState<Ride[]>(mockRides);
 
-  useEffect(() => {
-    const storedRides = localStorage.getItem("rides");
-    if (storedRides) {
-      setRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
-    }
-  }, [isPending]);
-  
   const refreshState = () => {
     startTransition(() => {
        const storedRides = localStorage.getItem("rides");
@@ -46,6 +38,78 @@ export default function DashboardPage() {
     });
   }
 
+  useEffect(() => {
+    const storedRides = localStorage.getItem("rides");
+    if (storedRides) {
+      setRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
+    }
+    // Listen for storage changes to update dashboard
+    const handleStorageChange = () => {
+        refreshState();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []); // Run only once
+
+  useEffect(() => {
+      refreshState();
+  }, [user]); // Refresh when user changes
+
+  
+  const handleStartRide = async (rideId: string) => {
+    const currentRides = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
+    const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+    
+    if (rideIndex !== -1) {
+        currentRides[rideIndex].status = 'active';
+        localStorage.setItem("rides", JSON.stringify(currentRides));
+        toast({
+            title: "Ride Started!",
+            description: "Passengers have been notified.",
+        });
+        refreshState();
+    } else {
+        toast({ title: "Error", description: "Ride not found", variant: "destructive" });
+    }
+  };
+
+  const handleCancelSpot = async (rideId: string) => {
+      if (!user) return;
+      const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || "[]").map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
+      const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+
+      if (rideIndex !== -1) {
+        const passengerIndex = currentRides[rideIndex].passengers.findIndex(p => p.id === user.id);
+        if (passengerIndex !== -1) {
+            currentRides[rideIndex].passengers.splice(passengerIndex, 1);
+            currentRides[rideIndex].availableSeats += 1;
+            localStorage.setItem("rides", JSON.stringify(currentRides));
+            toast({ title: "Spot Canceled", description: "You have been removed from the ride." });
+            refreshState();
+        } else {
+             toast({ title: "Error", description: "You are not on this ride.", variant: "destructive" });
+        }
+      } else {
+          toast({ title: "Error", description: "Ride not found.", variant: "destructive" });
+      }
+  }
+
+  const handleCancelRide = async (rideId: string) => {
+    const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || "[]").map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
+    const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+
+    if (rideIndex !== -1) {
+        currentRides[rideIndex].status = 'completed'; // Or 'canceled' if we add that status
+        localStorage.setItem("rides", JSON.stringify(currentRides));
+        toast({ title: "Ride Canceled", description: "The ride has been canceled." });
+        refreshState();
+    } else {
+        toast({ title: "Error", description: "Could not cancel the ride.", variant: "destructive" });
+    }
+  }
+  
   if (!user) return null;
 
   const upcomingRide = rides.find(
@@ -62,57 +126,6 @@ export default function DashboardPage() {
   );
   const hostedRides = rides.filter((ride) => ride.driver.id === user.id).length;
   const ecoPoints = hostedRides * 10 + rides.filter(r => r.passengers.some(p => p.id === user.id)).length * 5;
-
-  const handleStartRide = async (rideId: string) => {
-    const result = await startRide(rideId);
-    if (result.success) {
-      toast({
-        title: "Ride Started!",
-        description: "Passengers have been notified.",
-      });
-      refreshState();
-    } else {
-      toast({
-        title: "Error",
-        description: result.error,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCancelSpot = async (rideId: string) => {
-    const result = await cancelSpot(rideId, user.id);
-     if (result.success) {
-      toast({
-        title: "Spot Canceled",
-        description: "You have been removed from the ride.",
-      });
-       refreshState();
-    } else {
-      toast({
-        title: "Error",
-        description: result.error,
-        variant: "destructive",
-      });
-    }
-  }
-
-  const handleCancelRide = async (rideId: string) => {
-    const result = await cancelRide(rideId);
-    if (result.success) {
-      toast({
-        title: "Ride Canceled",
-        description: "All passengers have been notified.",
-      });
-      refreshState();
-    } else {
-      toast({
-        title: "Error",
-        description: result.error,
-        variant: "destructive",
-      });
-    }
-  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -186,7 +199,7 @@ export default function DashboardPage() {
                   <div className="text-sm text-muted-foreground space-y-2">
                      <div className="flex items-center">
                       <Clock className="mr-2 h-4 w-4" />
-                      <span>{format(upcomingRide.departureTime, "PPpp")}</span>
+                      <span>{format(new Date(upcomingRide.departureTime), "PPpp")}</span>
                     </div>
                     <div className="flex items-center">
                       <Avatar className="h-6 w-6 mr-2 border">

@@ -1,3 +1,6 @@
+
+"use client";
+
 import {
   Card,
   CardContent,
@@ -5,18 +8,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { rides } from "@/lib/data";
+import { Ride, rides as mockRides } from "@/lib/data";
 import MapComponent from "./map";
 import { notFound } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
 
 export default function TrackRidePage({ params }: { params: { id: string } }) {
-  const ride = rides.find((r) => r.id === params.id);
+  const [ride, setRide] = useState<Ride | undefined>(undefined);
+
+  useEffect(() => {
+    const storedRides = localStorage.getItem("rides");
+    const allRides: Ride[] = storedRides ? JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})) : mockRides;
+    const currentRide = allRides.find((r) => r.id === params.id);
+    setRide(currentRide);
+  }, [params.id]);
+
 
   if (!ride) {
-    notFound();
+    // You might want a loading state here
+    return <div>Loading ride details...</div>;
   }
-
+  
   return (
     <div className="grid gap-6">
         <Card>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useForm } from "react-hook-form";
@@ -30,6 +31,8 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { CalendarIcon, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
+import { Ride, rides as mockRides } from "@/lib/data";
 
 const rideSchema = z.object({
   startLocation: z.string().min(3, "Start location is required"),
@@ -40,18 +43,40 @@ const rideSchema = z.object({
 
 export default function OfferRidePage() {
   const { toast } = useToast();
+  const { user } = useUser();
   const form = useForm<z.infer<typeof rideSchema>>({
     resolver: zodResolver(rideSchema),
     defaultValues: {
       startLocation: "San Francisco, CA",
       destination: "Mountain View, CA",
-      departureTime: new Date(),
+      departureTime: new Date(new Date().setHours(new Date().getHours() + 2)),
       availableSeats: 2,
     },
   });
 
   function onSubmit(values: z.infer<typeof rideSchema>) {
-    console.log(values);
+    if (!user) {
+        toast({ title: "Error", description: "You must be logged in to offer a ride.", variant: "destructive" });
+        return;
+    }
+
+    const storedRides = localStorage.getItem('rides');
+    const currentRides: Ride[] = storedRides ? JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})) : mockRides;
+    
+    const newRide: Ride = {
+        id: `r${Date.now()}`,
+        driver: user,
+        startLocation: values.startLocation,
+        destination: values.destination,
+        departureTime: values.departureTime,
+        availableSeats: values.availableSeats,
+        passengers: [],
+        status: 'upcoming'
+    };
+
+    const updatedRides = [...currentRides, newRide];
+    localStorage.setItem('rides', JSON.stringify(updatedRides));
+
     toast({
       title: "Ride Offered!",
       description: `Your ride from ${values.startLocation} to ${values.destination} has been posted.`,
@@ -118,9 +143,9 @@ export default function OfferRidePage() {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              format(field.value, "PPpp")
                             ) : (
-                              <span>Pick a date</span>
+                              <span>Pick a date and time</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -136,6 +161,19 @@ export default function OfferRidePage() {
                           }
                           initialFocus
                         />
+                         <div className="p-3 border-t border-border">
+                          {/* Simple time picker - can be improved */}
+                           <Input
+                              type="time"
+                              defaultValue={format(field.value || new Date(), 'HH:mm')}
+                              onChange={(e) => {
+                                const [hours, minutes] = e.target.value.split(':').map(Number);
+                                const newDate = new Date(field.value);
+                                newDate.setHours(hours, minutes);
+                                field.onChange(newDate);
+                              }}
+                            />
+                        </div>
                       </PopoverContent>
                     </Popover>
                     <FormMessage />

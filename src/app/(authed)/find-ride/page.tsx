@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { rides, notifications as mockNotifications, Notification } from "@/lib/data";
+import { Ride, rides as mockRides, notifications as mockNotifications, Notification } from "@/lib/data";
 import { format } from "date-fns";
 import { Car, Users, Clock, Check, Hourglass, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -23,32 +23,33 @@ export default function FindRidePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
+  const [currentRides, setCurrentRides] = useState<Ride[]>(mockRides);
   const [currentNotifications, setCurrentNotifications] = useState<Notification[]>(mockNotifications);
 
   useEffect(() => {
-    // Load notifications from localStorage on component mount
     const storedNotifications = localStorage.getItem('notifications');
     if (storedNotifications) {
       setCurrentNotifications(JSON.parse(storedNotifications).map((n: any) => ({...n, timestamp: new Date(n.timestamp)})));
     }
-  }, []);
+    const storedRides = localStorage.getItem('rides');
+     if (storedRides) {
+      setCurrentRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
+    }
+  }, [isPending]);
 
   const updateAndStoreNotifications = (newNotifications: Notification[]) => {
       setCurrentNotifications(newNotifications);
       localStorage.setItem('notifications', JSON.stringify(newNotifications));
-      startTransition(() => {}); // Re-render components using this state
+      startTransition(() => {});
   }
-
 
   if (!user) return null;
 
-  const availableRides = rides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
+  const availableRides = currentRides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
 
   const handleRequestJoin = (rideId: string) => {
-    // In a real app, this would be an API call.
-    const ride = rides.find(r => r.id === rideId);
+    const ride = currentRides.find(r => r.id === rideId);
     if (ride) {
-        // Prevent duplicate requests
         const existingNotification = currentNotifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
         if (existingNotification) {
              toast({
@@ -61,7 +62,7 @@ export default function FindRidePage() {
 
         const newNotification: Notification = {
             id: `n${currentNotifications.length + 1}`,
-            userId: ride.driver.id, // Notification for the driver
+            userId: ride.driver.id,
             read: false,
             message: `${user.name} wants to join your ride from ${ride.startLocation} to ${ride.destination}.`,
             timestamp: new Date(),
@@ -69,12 +70,13 @@ export default function FindRidePage() {
             data: { rideId: ride.id, requesterId: user.id, status: 'pending' }
         };
         
-        const updatedNotifications = [...currentNotifications, newNotification];
+        const allNotifications = JSON.parse(localStorage.getItem('notifications') || JSON.stringify(mockNotifications));
+        const updatedNotifications = [...allNotifications, newNotification];
         updateAndStoreNotifications(updatedNotifications);
         
         toast({
-        title: "Request Sent!",
-        description: "Your request to join the ride has been sent to the driver.",
+          title: "Request Sent!",
+          description: "Your request to join the ride has been sent to the driver.",
         });
     }
   }
@@ -129,7 +131,7 @@ export default function FindRidePage() {
                             <div className="flex flex-col gap-2 text-muted-foreground">
                                 <div className="flex items-center gap-2">
                                     <Clock className="h-4 w-4" />
-                                    <span>{format(ride.departureTime, "E, MMM d 'at' h:mm a")}</span>
+                                    <span>{format(new Date(ride.departureTime), "E, MMM d 'at' h:mm a")}</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <Users className="h-4 w-4" />
