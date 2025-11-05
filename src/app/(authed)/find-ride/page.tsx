@@ -1,3 +1,6 @@
+
+"use client";
+
 import {
   Card,
   CardContent,
@@ -12,9 +15,19 @@ import { format } from "date-fns";
 import { Car, Users, Clock, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AiAssistantForm from "./ai-assistant-form";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FindRidePage() {
+  const { toast } = useToast();
   const availableRides = rides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0);
+
+  const handleRequestJoin = (rideId: string) => {
+    toast({
+      title: "Request Sent!",
+      description: "Your request to join the ride has been sent to the driver.",
+    });
+    console.log("Requested to join ride:", rideId);
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-12">
@@ -40,7 +53,7 @@ export default function FindRidePage() {
                                     <span>{ride.driver.name}</span>
                                 </div>
                                 </div>
-                                <Button>Request Join</Button>
+                                <Button onClick={() => handleRequestJoin(ride.id)}>Request Join</Button>
                             </div>
                             </CardHeader>
                             <CardContent className="flex justify-between items-center text-sm">
