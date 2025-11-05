@@ -24,7 +24,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [rides, setRides] = useState<Ride[]>(mockRides);
+  const [rides, setRides] = useState<Ride[]>([]);
 
   const refreshState = () => {
     startTransition(() => {
@@ -39,25 +39,20 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    const storedRides = localStorage.getItem("rides");
-    if (storedRides) {
-      setRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
-    }
-    // Listen for storage changes to update dashboard
-    const handleStorageChange = () => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'rides') {
         refreshState();
+      }
     };
+
+    refreshState(); // Initial load
     window.addEventListener('storage', handleStorageChange);
+
     return () => {
-        window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
-  }, []); // Run only once
+  }, []);
 
-  useEffect(() => {
-      refreshState();
-  }, [user]); // Refresh when user changes
-
-  
   const handleStartRide = async (rideId: string) => {
     const currentRides = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
     const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
@@ -65,11 +60,11 @@ export default function DashboardPage() {
     if (rideIndex !== -1) {
         currentRides[rideIndex].status = 'active';
         localStorage.setItem("rides", JSON.stringify(currentRides));
+        window.dispatchEvent(new Event('storage')); // Manually trigger storage event for this window
         toast({
             title: "Ride Started!",
             description: "Passengers have been notified.",
         });
-        refreshState();
     } else {
         toast({ title: "Error", description: "Ride not found", variant: "destructive" });
     }
@@ -77,7 +72,7 @@ export default function DashboardPage() {
 
   const handleCancelSpot = async (rideId: string) => {
       if (!user) return;
-      const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || "[]").map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
+      const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
       const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
 
       if (rideIndex !== -1) {
@@ -86,8 +81,8 @@ export default function DashboardPage() {
             currentRides[rideIndex].passengers.splice(passengerIndex, 1);
             currentRides[rideIndex].availableSeats += 1;
             localStorage.setItem("rides", JSON.stringify(currentRides));
+            window.dispatchEvent(new Event('storage')); // Manually trigger storage event
             toast({ title: "Spot Canceled", description: "You have been removed from the ride." });
-            refreshState();
         } else {
              toast({ title: "Error", description: "You are not on this ride.", variant: "destructive" });
         }
@@ -97,14 +92,14 @@ export default function DashboardPage() {
   }
 
   const handleCancelRide = async (rideId: string) => {
-    const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || "[]").map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
+    const currentRides: Ride[] = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
     const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
 
     if (rideIndex !== -1) {
         currentRides[rideIndex].status = 'completed'; // Or 'canceled' if we add that status
         localStorage.setItem("rides", JSON.stringify(currentRides));
+        window.dispatchEvent(new Event('storage')); // Manually trigger storage event
         toast({ title: "Ride Canceled", description: "The ride has been canceled." });
-        refreshState();
     } else {
         toast({ title: "Error", description: "Could not cancel the ride.", variant: "destructive" });
     }
@@ -252,3 +247,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

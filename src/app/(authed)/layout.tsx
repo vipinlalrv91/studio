@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/logo";
 import { useUser } from "@/hooks/use-user";
-import { notifications, users } from "@/lib/data";
+import { notifications as mockNotifications, Notification } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 
 const navItems = [
@@ -55,26 +55,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, setUser } = useUser();
-  const [currentUser, setCurrentUser] = React.useState(user);
-
-  const unreadNotifications = currentUser ? notifications.filter(n => n.userId === currentUser.id && !n.read).length : 0;
+  const [unreadCount, setUnreadCount] = React.useState(0);
 
   React.useEffect(() => {
     // If there's no user in the context, try to get it from localStorage
     if (!user) {
       const storedUser = localStorage.getItem('currentUser');
       if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setCurrentUser(parsedUser);
+        setUser(JSON.parse(storedUser));
       } else {
         // if no user is found, redirect to login
         router.push('/');
       }
-    } else {
-      setCurrentUser(user);
     }
   }, [user, setUser, router]);
+
+  React.useEffect(() => {
+    const updateUnreadCount = () => {
+      if (user) {
+        const allNotifications: Notification[] = JSON.parse(localStorage.getItem('notifications') || '[]');
+        const userUnread = allNotifications.filter(n => n.userId === user.id && !n.read).length;
+        setUnreadCount(userUnread);
+      }
+    };
+    
+    updateUnreadCount(); // Initial check
+    
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'notifications') {
+        updateUnreadCount();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+
+  }, [user]);
 
 
   const getPageTitle = () => {
@@ -88,12 +107,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('currentUser');
+    setUser(null); // This will clear localStorage via the hook
     router.push('/');
   }
 
-  if (!currentUser) {
+  if (!user) {
     return (
        <div className="flex h-screen items-center justify-center">
         <p>Loading...</p>
@@ -134,7 +152,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                    <span>
                     <Bell />
                     <span>Notifications</span>
-                    {unreadNotifications > 0 && <Badge className="ml-auto">{unreadNotifications}</Badge>}
+                    {unreadCount > 0 && <Badge className="ml-auto">{unreadCount}</Badge>}
                   </span>
                 </SidebarMenuButton>
               </Link>
@@ -149,13 +167,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 className="w-full justify-start gap-2 px-2"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
-                  <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col items-start text-left">
-                  <span className="text-sm font-medium">{currentUser.name}</span>
+                  <span className="text-sm font-medium">{user.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {currentUser.department}
+                    {user.department}
                   </span>
                 </div>
                 <ChevronDown className="ml-auto h-4 w-4" />
@@ -165,10 +183,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {currentUser.name}
+                    {user.name}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {currentUser.id}@company.com
+                    {user.id}@company.com
                   </p>
                 </div>
               </DropdownMenuLabel>
@@ -201,3 +219,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     </SidebarProvider>
   );
 }
+
+    

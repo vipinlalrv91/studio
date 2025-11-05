@@ -76,6 +76,7 @@ export default function OfferRidePage() {
 
     const updatedRides = [...currentRides, newRide];
     localStorage.setItem('rides', JSON.stringify(updatedRides));
+    window.dispatchEvent(new Event('storage')); // Manually trigger to update other components
 
     toast({
       title: "Ride Offered!",
@@ -201,3 +202,5 @@ export default function OfferRidePage() {
     </Card>
   );
 }
+
+    

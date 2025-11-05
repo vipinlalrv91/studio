@@ -23,34 +23,43 @@ export default function FindRidePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
-  const [currentRides, setCurrentRides] = useState<Ride[]>(mockRides);
-  const [currentNotifications, setCurrentNotifications] = useState<Notification[]>(mockNotifications);
+  const [currentRides, setCurrentRides] = useState<Ride[]>([]);
+  const [currentNotifications, setCurrentNotifications] = useState<Notification[]>([]);
+  
+  const refreshState = () => {
+    startTransition(() => {
+      const storedNotifications = localStorage.getItem('notifications');
+      const storedRides = localStorage.getItem('rides');
+      
+      setCurrentNotifications(storedNotifications ? JSON.parse(storedNotifications) : mockNotifications);
+      setCurrentRides(storedRides ? JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})) : mockRides);
+    });
+  };
 
   useEffect(() => {
-    const storedNotifications = localStorage.getItem('notifications');
-    if (storedNotifications) {
-      setCurrentNotifications(JSON.parse(storedNotifications).map((n: any) => ({...n, timestamp: new Date(n.timestamp)})));
-    }
-    const storedRides = localStorage.getItem('rides');
-     if (storedRides) {
-      setCurrentRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
-    }
-  }, [isPending]);
+    const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'rides' || e.key === 'notifications') {
+            refreshState();
+        }
+    };
 
-  const updateAndStoreNotifications = (newNotifications: Notification[]) => {
-      setCurrentNotifications(newNotifications);
-      localStorage.setItem('notifications', JSON.stringify(newNotifications));
-      startTransition(() => {});
-  }
+    refreshState(); // Initial load
+    window.addEventListener('storage', handleStorageChange);
 
-  if (!user) return null;
+    return () => {
+        window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
-  const availableRides = currentRides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
 
   const handleRequestJoin = (rideId: string) => {
+    if (!user) return;
     const ride = currentRides.find(r => r.id === rideId);
+    
     if (ride) {
-        const existingNotification = currentNotifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
+        const allNotifications = JSON.parse(localStorage.getItem('notifications') || JSON.stringify(mockNotifications));
+        
+        const existingNotification = allNotifications.find((n: Notification) => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
         if (existingNotification) {
              toast({
                 title: "Request already sent!",
@@ -61,7 +70,7 @@ export default function FindRidePage() {
         }
 
         const newNotification: Notification = {
-            id: `n${currentNotifications.length + 1}`,
+            id: `n${Date.now()}`,
             userId: ride.driver.id,
             read: false,
             message: `${user.name} wants to join your ride from ${ride.startLocation} to ${ride.destination}.`,
@@ -70,9 +79,9 @@ export default function FindRidePage() {
             data: { rideId: ride.id, requesterId: user.id, status: 'pending' }
         };
         
-        const allNotifications = JSON.parse(localStorage.getItem('notifications') || JSON.stringify(mockNotifications));
         const updatedNotifications = [...allNotifications, newNotification];
-        updateAndStoreNotifications(updatedNotifications);
+        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
+        window.dispatchEvent(new Event('storage'));
         
         toast({
           title: "Request Sent!",
@@ -82,9 +91,14 @@ export default function FindRidePage() {
   }
 
   const getRequestStatus = (rideId: string) => {
+      if (!user) return null;
       const notification = currentNotifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
       return notification ? notification.data.status : null;
   }
+
+  if (!user) return null;
+
+  const availableRides = currentRides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
 
   const renderJoinButton = (rideId: string) => {
       const status = getRequestStatus(rideId);
@@ -160,3 +174,5 @@ export default function FindRidePage() {
     </div>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -6,9 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Logo } from "@/components/logo";
 import Image from "next/image";
 import { placeholderImages } from "@/lib/placeholder-images.json";
-import { users } from "@/lib/data";
+import { users, rides, notifications } from "@/lib/data";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/hooks/use-user";
 
 export default function LoginPage() {
@@ -16,6 +17,17 @@ export default function LoginPage() {
   const { setUser } = useUser();
   const heroImage = placeholderImages.find(p => p.id === "login-hero");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This seeds the localStorage with mock data if it's not already there.
+    // Simulates a backend database for the prototype.
+    if (!localStorage.getItem('rides')) {
+        localStorage.setItem('rides', JSON.stringify(rides));
+    }
+    if (!localStorage.getItem('notifications')) {
+        localStorage.setItem('notifications', JSON.stringify(notifications));
+    }
+  }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,3 +99,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
