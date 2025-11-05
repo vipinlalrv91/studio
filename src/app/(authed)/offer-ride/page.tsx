@@ -33,6 +33,7 @@ import { CalendarIcon, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 import { Ride, rides as mockRides } from "@/lib/data";
+import { useRouter } from "next/navigation";
 
 const rideSchema = z.object({
   startLocation: z.string().min(3, "Start location is required"),
@@ -44,6 +45,7 @@ const rideSchema = z.object({
 export default function OfferRidePage() {
   const { toast } = useToast();
   const { user } = useUser();
+  const router = useRouter();
   const form = useForm<z.infer<typeof rideSchema>>({
     resolver: zodResolver(rideSchema),
     defaultValues: {
@@ -83,6 +85,7 @@ export default function OfferRidePage() {
       description: `Your ride from ${values.startLocation} to ${values.destination} has been posted.`,
     });
     form.reset();
+    router.push("/find-ride");
   }
 
   return (
@@ -202,5 +205,3 @@ export default function OfferRidePage() {
     </Card>
   );
 }
-
-    
