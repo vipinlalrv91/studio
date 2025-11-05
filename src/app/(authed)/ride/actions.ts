@@ -1,78 +1,72 @@
 
-"use server";
+'use server';
 
-import { rides as mockRides, notifications as mockNotifications, Ride, Notification } from "@/lib/data";
+import { carpoolMatchingAssistant } from '@/ai/flows/carpool-matching-assistant';
+import { AiInput } from '@/ai/flows/types';
+import { rides as mockRides, notifications as mockNotifications, Notification, Ride, User } from '@/lib/data';
 
-// In a real app, these would be database operations.
-// For this prototype, we'll simulate them and rely on client-side state management with localStorage.
+// This is a server-side representation. In a real app, you'd use a database.
+// For the purpose of this demo, we'll simulate the data store.
+let rides = [...mockRides];
+let notifications = [...mockNotifications];
 
-const getRides = (): Ride[] => {
-    // This function would fetch from a database. 
-    // In the future, we can read from localStorage on the server-side if needed, but it's complex.
-    // For now, actions will receive the state from the client or operate on a base state.
-    return mockRides;
-}
-
-const getNotifications = (): Notification[] => {
-    return mockNotifications;
-}
-
-export async function startRide(rideId: string) {
+export async function findMatchingRides(query: string): Promise<{ success: boolean; rides?: Ride[]; error?: string; }> {
+    console.log("Finding matching rides for query:", query);
     try {
-        // In a real app, you'd fetch rides from a DB here.
-        // We'll rely on the client to send the current state or just update what will be stored in localStorage.
-        const rideToUpdate = mockRides.find(r => r.id === rideId);
-        if (!rideToUpdate) {
-            return { success: false, error: "Ride not found." };
-        }
-        if (rideToUpdate.status !== 'upcoming') {
-            return { success: false, error: "Ride cannot be started." };
-        }
+        const availableRides = rides.filter(r => r.status === 'upcoming');
+        const aiInput: AiInput = {
+            query,
+            availableRides,
+        };
+        const result = await carpoolMatchingAssistant(aiInput);
+        
+        // The assistant returns a list of ride IDs that are suggested matches.
+        const matchedRides = rides.filter(ride => result.suggestedMatches.some((match: any) => match.rideId === ride.id));
 
-        // The client will update its state and persist to localStorage
-        return { success: true };
+        console.log("AI suggested matches:", result.suggestedMatches);
+        console.log("Matched rides from data:", matchedRides);
+
+        return { success: true, rides: matchedRides };
     } catch (error) {
-        console.error("Failed to start ride:", error);
-        return { success: false, error: "An unexpected error occurred." };
+        console.error("Error in findMatchingRides:", error);
+        return { success: false, error: "Failed to get AI matches." };
     }
 }
 
-export async function cancelSpot(rideId: string, userId: string) {
-    try {
-        const rideToUpdate = mockRides.find(r => r.id === rideId);
-         if (!rideToUpdate) {
-            return { success: false, error: "Ride not found." };
-        }
+export async function startRide(rideId: string): Promise<{ success: boolean; error?: string }> {
+    console.log("Starting ride:", rideId);
 
-        const passengerIndex = rideToUpdate.passengers.findIndex(p => p.id === userId);
-        if (passengerIndex === -1) {
-            return { success: false, error: "You are not a passenger on this ride." };
-        }
-
-        // The client will update its state and persist to localStorage
-        return { success: true, driverId: rideToUpdate.driver.id, destination: rideToUpdate.destination };
-
-    } catch (error) {
-         console.error("Failed to cancel spot:", error);
-        return { success: false, error: "An unexpected error occurred." };
+    const rideIndex = rides.findIndex(r => r.id === rideId);
+    if (rideIndex === -1) {
+        return { success: false, error: "Ride not found." };
     }
-}
 
-export async function cancelRide(rideId: string) {
-    try {
-        const rideToUpdate = mockRides.find(r => r.id === rideId);
-        if (!rideToUpdate) {
-            return { success: false, error: "Ride not found." };
-        }
-
-        if (rideToUpdate.status !== 'active') {
-             return { success: false, error: "Only active rides can be canceled." };
-        }
-       
-        // The client will update its state and persist to localStorage
-        return { success: true };
-    } catch (error) {
-        console.error("Failed to cancel ride:", error);
-        return { success: false, error: "An unexpected error occurred." };
+    const ride = rides[rideIndex];
+    if (ride.status !== 'upcoming') {
+        return { success: false, error: "Ride has already started or is completed." };
     }
+
+    // Update ride status
+    rides[rideIndex] = { ...ride, status: 'active' };
+
+    // Create notifications for passengers
+    const newNotifications: Notification[] = ride.passengers.map((passenger: User) => ({
+        id: `n${Date.now()}${Math.random()}`,
+        userId: passenger.id,
+        read: false,
+        message: `Your ride from ${ride.startLocation} to ${ride.destination} has started!`,
+        timestamp: new Date(),
+        type: 'ride-update',
+        data: { rideId: ride.id, status: 'started' }
+    }));
+
+    notifications = [...notifications, ...newNotifications];
+
+    console.log(`Ride ${rideId} started, ${newNotifications.length} notifications created.`);
+
+    // Note: In a real app, this state change would be persisted in a database
+    // and a push notification service would be triggered.
+    // For this demo, we're just updating the in-memory array. The client will poll or use local storage events.
+    
+    return { success: true };
 }
