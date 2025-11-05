@@ -12,6 +12,8 @@ export type Ride = {
   driver: User;
   startLocation: string;
   destination: string;
+  startLocationCoords: { lat: number; lng: number };
+  destinationCoords: { lat: number; lng: number };
   departureTime: Date;
   availableSeats: number;
   passengers: User[];
@@ -49,6 +51,8 @@ export const rides: Ride[] = [
     driver: users[1], // Maria Garcia
     startLocation: 'Sunnyvale, CA',
     destination: 'San Francisco, CA',
+    startLocationCoords: { lat: 37.3688, lng: -122.0363 },
+    destinationCoords: { lat: 37.7749, lng: -122.4194 },
     departureTime: new Date(new Date().getTime() - 15 * 60 * 1000), // 15 minutes ago
     availableSeats: 2,
     passengers: [users[0]], // Alex Johnson
@@ -59,6 +63,8 @@ export const rides: Ride[] = [
     driver: users[2], // David Smith
     startLocation: 'Oakland, CA',
     destination: 'Palo Alto, CA',
+    startLocationCoords: { lat: 37.8044, lng: -122.2712 },
+    destinationCoords: { lat: 37.4419, lng: -122.1430 },
     departureTime: new Date(new Date().getTime() + 4 * 60 * 60 * 1000), // 4 hours from now
     availableSeats: 3,
     passengers: [],
@@ -69,6 +75,8 @@ export const rides: Ride[] = [
     driver: users[3], // Sarah Chen
     startLocation: 'San Jose, CA',
     destination: 'Mountain View, CA',
+    startLocationCoords: { lat: 37.3382, lng: -121.8863 },
+    destinationCoords: { lat: 37.3861, lng: -122.0838 },
     departureTime: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // tomorrow
     availableSeats: 1,
     passengers: [users[4]], // Chen Wang
@@ -79,6 +87,8 @@ export const rides: Ride[] = [
     driver: users[0], // Alex Johnson
     startLocation: 'San Francisco, CA',
     destination: 'Sunnyvale, CA',
+    startLocationCoords: { lat: 37.7749, lng: -122.4194 },
+    destinationCoords: { lat: 37.3688, lng: -122.0363 },
     departureTime: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // yesterday
     availableSeats: 0,
     passengers: [users[2], users[3]],
@@ -89,6 +99,8 @@ export const rides: Ride[] = [
     driver: users[4], // Chen Wang
     startLocation: 'Berkeley, CA',
     destination: 'San Francisco, CA',
+    startLocationCoords: { lat: 37.8715, lng: -122.2730 },
+    destinationCoords: { lat: 37.7749, lng: -122.4194 },
     departureTime: new Date(new Date().getTime() + 2 * 60 * 60 * 1000), // 2 hours from now
     availableSeats: 2,
     passengers: [],
