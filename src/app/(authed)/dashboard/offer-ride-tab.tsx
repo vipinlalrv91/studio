@@ -42,7 +42,7 @@ const rideSchema = z.object({
   availableSeats: z.coerce.number().min(1, "Must have at least one seat").max(6),
 });
 
-export default function OfferRidePage() {
+export default function OfferRideTab() {
   const { toast } = useToast();
   const { user } = useUser();
   const router = useRouter();
@@ -85,7 +85,7 @@ export default function OfferRidePage() {
       description: `Your ride from ${values.startLocation} to ${values.destination} has been posted.`,
     });
     form.reset();
-    router.push("/find-ride");
+    router.push("/dashboard");
   }
 
   return (

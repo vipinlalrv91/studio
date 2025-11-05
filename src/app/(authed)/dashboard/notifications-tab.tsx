@@ -18,7 +18,7 @@ import { Check, X, Car, Info, RadioTower, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
-export default function NotificationsPage() {
+export default function NotificationsTab() {
   const { user } = useUser();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);

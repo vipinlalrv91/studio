@@ -15,11 +15,11 @@ import { Ride, rides as mockRides, notifications as mockNotifications, Notificat
 import { format } from "date-fns";
 import { Car, Users, Clock, Check, Hourglass, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import AiAssistantForm from "./ai-assistant-form";
+import AiAssistantForm from "../components/ai-assistant-form";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
 
-export default function FindRidePage() {
+export default function FindRideTab() {
   const { toast } = useToast();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
@@ -174,5 +174,3 @@ export default function FindRidePage() {
     </div>
   );
 }
-
-    
