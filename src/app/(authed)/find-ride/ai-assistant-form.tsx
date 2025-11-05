@@ -7,8 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Wand2 } from "lucide-react";
 import { getAiMatches } from "./actions";
+import { useUser } from "@/hooks/use-user";
+import { Input } from "@/components/ui/input";
 
 export default function AiAssistantForm() {
+    const { user } = useUser();
     const [loading, setLoading] = useState(false);
     const [matches, setMatches] = useState<string[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -20,10 +23,11 @@ export default function AiAssistantForm() {
         setError(null);
 
         const formData = new FormData(event.currentTarget);
+        const location = formData.get("location") as string;
         const schedule = formData.get("schedule") as string;
         const preferences = formData.get("preferences") as string;
 
-        const result = await getAiMatches({ schedule, preferences });
+        const result = await getAiMatches({ location, schedule, preferences });
 
         if (result.success && result.matches) {
             setMatches(result.matches);
@@ -45,6 +49,15 @@ export default function AiAssistantForm() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid w-full items-center gap-1.5">
+                        <Label htmlFor="location">Your Location</Label>
+                        <Input 
+                            id="location" 
+                            name="location"
+                            placeholder="e.g., Your current city or address" 
+                            defaultValue={user?.department === "Engineering" ? "Sunnyvale, CA" : "San Francisco, CA"}
+                        />
+                    </div>
+                     <div className="grid w-full items-center gap-1.5">
                         <Label htmlFor="schedule">Your Schedule</Label>
                         <Textarea 
                             id="schedule" 

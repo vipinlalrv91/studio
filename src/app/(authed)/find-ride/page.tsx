@@ -10,23 +10,71 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { rides } from "@/lib/data";
+import { rides, notifications } from "@/lib/data";
 import { format } from "date-fns";
-import { Car, Users, Clock, MapPin } from "lucide-react";
+import { Car, Users, Clock, Check, Hourglass, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AiAssistantForm from "./ai-assistant-form";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/hooks/use-user";
 
 export default function FindRidePage() {
   const { toast } = useToast();
-  const availableRides = rides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0);
+  const { user } = useUser();
+  if (!user) return null;
+
+  const availableRides = rides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id);
 
   const handleRequestJoin = (rideId: string) => {
-    toast({
-      title: "Request Sent!",
-      description: "Your request to join the ride has been sent to the driver.",
-    });
-    console.log("Requested to join ride:", rideId);
+    // In a real app, this would be an API call.
+    // For this demo, we'll just add a notification.
+    const ride = rides.find(r => r.id === rideId);
+    if (ride) {
+        // Prevent duplicate requests
+        const existingNotification = notifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
+        if (existingNotification) {
+             toast({
+                title: "Request already sent!",
+                description: "You have already requested to join this ride.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        notifications.push({
+            id: `n${notifications.length + 1}`,
+            userId: ride.driver.id, // Notification for the driver
+            read: false,
+            message: `${user.name} wants to join your ride from ${ride.startLocation} to ${ride.destination}.`,
+            timestamp: new Date(),
+            type: 'ride-request',
+            data: { rideId: ride.id, requesterId: user.id, status: 'pending' }
+        });
+        
+        toast({
+        title: "Request Sent!",
+        description: "Your request to join the ride has been sent to the driver.",
+        });
+    }
+  }
+
+  const getRequestStatus = (rideId: string) => {
+      const notification = notifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
+      return notification ? notification.data.status : null;
+  }
+
+  const renderJoinButton = (rideId: string) => {
+      const status = getRequestStatus(rideId);
+      switch(status) {
+          case 'approved':
+              return <Button disabled variant="secondary"><Check className="mr-2"/> Approved</Button>;
+          case 'declined':
+              return <Button disabled variant="destructive"><X className="mr-2"/> Declined</Button>;
+          case 'pending':
+              return <Button disabled variant="outline"><Hourglass className="mr-2"/> Pending</Button>;
+          default:
+              return <Button onClick={() => handleRequestJoin(rideId)}>Request Join</Button>;
+      }
   }
 
   return (
@@ -39,7 +87,7 @@ export default function FindRidePage() {
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
-                        {availableRides.map((ride) => (
+                        {availableRides.length > 0 ? availableRides.map((ride) => (
                         <Card key={ride.id}>
                             <CardHeader>
                             <div className="flex justify-between items-start">
@@ -53,7 +101,7 @@ export default function FindRidePage() {
                                     <span>{ride.driver.name}</span>
                                 </div>
                                 </div>
-                                <Button onClick={() => handleRequestJoin(ride.id)}>Request Join</Button>
+                                {renderJoinButton(ride.id)}
                             </div>
                             </CardHeader>
                             <CardContent className="flex justify-between items-center text-sm">
@@ -72,7 +120,13 @@ export default function FindRidePage() {
                             </Badge>
                             </CardContent>
                         </Card>
-                        ))}
+                        )) : (
+                            <div className="text-center py-10 text-muted-foreground">
+                                <Car className="mx-auto h-12 w-12" />
+                                <p className="mt-4">No available rides match your criteria right now.</p>
+                                <p>Try offering a ride instead!</p>
+                            </div>
+                        )}
                     </div>
                 </CardContent>
             </Card>

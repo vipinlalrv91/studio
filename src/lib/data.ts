@@ -25,7 +25,17 @@ export type LeaderboardEntry = {
   distanceCovered: number; // in km
 };
 
-const users: User[] = [
+export type Notification = {
+  id: string;
+  userId: string;
+  read: boolean;
+  message: string;
+  timestamp: Date;
+  type: 'ride-request' | 'ride-update' | 'new-ride-available';
+  data: any;
+}
+
+export const users: User[] = [
   { id: 'u1', name: 'Alex Johnson', department: 'Engineering', avatarUrl: placeholderImages.find(p => p.id === 'user-avatar-1')?.imageUrl || '' },
   { id: 'u2', name: 'Maria Garcia', department: 'Marketing', avatarUrl: placeholderImages.find(p => p.id === 'user-avatar-2')?.imageUrl || '' },
   { id: 'u3', name: 'David Smith', department: 'Sales', avatarUrl: placeholderImages.find(p => p.id === 'user-avatar-3')?.imageUrl || '' },
@@ -33,22 +43,20 @@ const users: User[] = [
   { id: 'u5', name: 'Chen Wang', department: 'Engineering', avatarUrl: placeholderImages.find(p => p.id === 'user-avatar-5')?.imageUrl || '' },
 ];
 
-export const mockUser = users[0];
-
 export const rides: Ride[] = [
   {
     id: 'r1',
-    driver: users[1],
+    driver: users[1], // Maria Garcia
     startLocation: 'Sunnyvale, CA',
     destination: 'San Francisco, CA',
     departureTime: new Date(new Date().getTime() - 15 * 60 * 1000), // 15 minutes ago
     availableSeats: 2,
-    passengers: [users[0]],
+    passengers: [users[0]], // Alex Johnson
     status: 'active',
   },
   {
     id: 'r2',
-    driver: users[2],
+    driver: users[2], // David Smith
     startLocation: 'Oakland, CA',
     destination: 'Palo Alto, CA',
     departureTime: new Date(new Date().getTime() + 4 * 60 * 60 * 1000), // 4 hours from now
@@ -58,23 +66,33 @@ export const rides: Ride[] = [
   },
   {
     id: 'r3',
-    driver: users[3],
+    driver: users[3], // Sarah Chen
     startLocation: 'San Jose, CA',
     destination: 'Mountain View, CA',
     departureTime: new Date(new Date().getTime() + 24 * 60 * 60 * 1000), // tomorrow
     availableSeats: 1,
-    passengers: [users[4]],
+    passengers: [users[4]], // Chen Wang
     status: 'upcoming',
   },
   {
     id: 'r4',
-    driver: users[0],
+    driver: users[0], // Alex Johnson
     startLocation: 'San Francisco, CA',
     destination: 'Sunnyvale, CA',
     departureTime: new Date(new Date().getTime() - 24 * 60 * 60 * 1000), // yesterday
     availableSeats: 0,
     passengers: [users[2], users[3]],
     status: 'completed',
+  },
+   {
+    id: 'r5',
+    driver: users[4], // Chen Wang
+    startLocation: 'Berkeley, CA',
+    destination: 'San Francisco, CA',
+    departureTime: new Date(new Date().getTime() + 2 * 60 * 60 * 1000), // 2 hours from now
+    availableSeats: 2,
+    passengers: [],
+    status: 'upcoming',
   },
 ];
 
@@ -84,4 +102,25 @@ export const leaderboard: LeaderboardEntry[] = [
     { rank: 3, user: users[0], ridesShared: 35, distanceCovered: 980 },
     { rank: 4, user: users[2], ridesShared: 29, distanceCovered: 850 },
     { rank: 5, user: users[4], ridesShared: 25, distanceCovered: 720 },
+];
+
+export const notifications: Notification[] = [
+    {
+        id: 'n1',
+        userId: 'u1', // Alex Johnson
+        read: true,
+        message: "Your request to join Maria Garcia's ride was approved.",
+        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        type: 'ride-update',
+        data: { rideId: 'r1', status: 'approved' }
+    },
+    {
+        id: 'n2',
+        userId: 'u2', // Maria Garcia
+        read: false,
+        message: "David Smith wants to join your ride from Sunnyvale to San Francisco.",
+        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        type: 'ride-request',
+        data: { rideId: 'r1', requesterId: 'u3', status: 'pending' }
+    }
 ];

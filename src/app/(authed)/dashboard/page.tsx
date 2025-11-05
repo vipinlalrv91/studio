@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Card,
   CardContent,
@@ -7,32 +9,36 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { mockUser, rides } from "@/lib/data";
+import { rides } from "@/lib/data";
 import { format } from "date-fns";
-import { Car, Leaf, MapPin, Users, Clock, RadioTower } from "lucide-react";
+import { Car, Leaf, RadioTower, Clock } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@/hooks/use-user";
 
 export default function DashboardPage() {
+  const { user } = useUser();
+  if (!user) return null;
+
   const upcomingRide = rides.find(
     (ride) =>
-      (ride.driver.id === mockUser.id ||
-        ride.passengers.some((p) => p.id === mockUser.id)) &&
+      (ride.driver.id === user.id ||
+        ride.passengers.some((p) => p.id === user.id)) &&
       ride.status === "upcoming"
   );
   const activeRide = rides.find(
     (ride) =>
-      (ride.driver.id === mockUser.id ||
-        ride.passengers.some((p) => p.id === mockUser.id)) &&
+      (ride.driver.id === user.id ||
+        ride.passengers.some((p) => p.id === user.id)) &&
       ride.status === "active"
   );
-  const hostedRides = rides.filter((ride) => ride.driver.id === mockUser.id).length;
-  const ecoPoints = hostedRides * 10 + rides.filter(r => r.passengers.some(p => p.id === mockUser.id)).length * 5;
+  const hostedRides = rides.filter((ride) => ride.driver.id === user.id).length;
+  const ecoPoints = hostedRides * 10 + rides.filter(r => r.passengers.some(p => p.id === user.id)).length * 5;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle>Welcome back, {mockUser.name}!</CardTitle>
+          <CardTitle>Welcome back, {user.name}!</CardTitle>
           <CardDescription>
             Here's your carpooling summary. Let's make today's commute greener.
           </CardDescription>

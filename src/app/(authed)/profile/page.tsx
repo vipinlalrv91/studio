@@ -1,4 +1,6 @@
-import { mockUser } from "@/lib/data";
+"use client";
+
+import { useUser } from "@/hooks/use-user";
 import {
   Card,
   CardContent,
@@ -10,9 +12,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 
 export default function ProfilePage() {
+  const { user } = useUser();
+
+  if (!user) {
+    return null;
+  }
+  
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-6">
       <div className="grid gap-2">
@@ -33,25 +40,25 @@ export default function ProfilePage() {
             <form className="grid gap-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
-                  <AvatarFallback>{mockUser.name.substring(0, 2)}</AvatarFallback>
+                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                  <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
                 </Avatar>
                 <Button variant="outline">Change Photo</Button>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" defaultValue={mockUser.name} />
+                  <Input id="name" defaultValue={user.name} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="alex@company.com" disabled />
+                  <Input id="email" type="email" defaultValue={`${user.id}@company.com`} disabled />
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="department">Department</Label>
-                  <Input id="department" defaultValue={mockUser.department} />
+                  <Input id="department" defaultValue={user.department} />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone Number</Label>

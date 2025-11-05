@@ -3,7 +3,7 @@
 import { carpoolMatchingAssistant, CarpoolMatchingInput } from "@/ai/flows/carpool-matching-assistant";
 import { rides } from "@/lib/data";
 
-export async function getAiMatches(input: { schedule: string, preferences: string }) {
+export async function getAiMatches(input: { location: string, schedule: string, preferences: string }) {
     try {
         const ridesString = rides
             .filter(r => r.status === 'upcoming')
@@ -11,7 +11,7 @@ export async function getAiMatches(input: { schedule: string, preferences: strin
             .join('\n');
 
         const aiInput: CarpoolMatchingInput = {
-            location: "User's office location",
+            location: input.location,
             schedule: input.schedule,
             preferences: input.preferences,
             existingRides: ridesString,
