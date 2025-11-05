@@ -11,12 +11,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { rides } from "@/lib/data";
 import { format } from "date-fns";
-import { Car, Leaf, RadioTower, Clock } from "lucide-react";
+import { Car, Leaf, RadioTower, Clock, PlayCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useUser } from "@/hooks/use-user";
+import { useToast } from "@/hooks/use-toast";
+import { startRide, cancelSpot } from "../ride/actions";
+import { useRouter } from "next/navigation";
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const { toast } = useToast();
+  const router = useRouter();
+
   if (!user) return null;
 
   const upcomingRide = rides.find(
@@ -33,6 +39,41 @@ export default function DashboardPage() {
   );
   const hostedRides = rides.filter((ride) => ride.driver.id === user.id).length;
   const ecoPoints = hostedRides * 10 + rides.filter(r => r.passengers.some(p => p.id === user.id)).length * 5;
+
+  const handleStartRide = async (rideId: string) => {
+    const result = await startRide(rideId);
+    if (result.success) {
+      toast({
+        title: "Ride Started!",
+        description: "Passengers have been notified.",
+      });
+      // Force a re-render by navigating to the same page
+      router.refresh();
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCancelSpot = async (rideId: string) => {
+    const result = await cancelSpot(rideId, user.id);
+     if (result.success) {
+      toast({
+        title: "Spot Canceled",
+        description: "You have been removed from the ride.",
+      });
+      router.refresh();
+    } else {
+      toast({
+        title: "Error",
+        description: result.error,
+        variant: "destructive",
+      });
+    }
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -63,8 +104,8 @@ export default function DashboardPage() {
                       </div>
                     </div>
                      <Button asChild>
-                        <Link href={`/ride/${activeRide.id}/track`} className="flex items-center gap-2">
-                            <RadioTower className="h-4 w-4" />
+                        <Link href={`/ride/${activeRide.id}/track`}>
+                            <RadioTower className="mr-2" />
                             Track Live
                         </Link>
                     </Button>
@@ -80,7 +121,19 @@ export default function DashboardPage() {
                   <CardTitle className="text-base font-medium">
                     {upcomingRide.startLocation} to {upcomingRide.destination}
                   </CardTitle>
-                  <Car className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2">
+                    {user.id === upcomingRide.driver.id ? (
+                      <Button onClick={() => handleStartRide(upcomingRide.id)}>
+                        <PlayCircle className="mr-2" />
+                        Start Ride
+                      </Button>
+                    ) : (
+                       <Button variant="destructive" onClick={() => handleCancelSpot(upcomingRide.id)}>
+                        <XCircle className="mr-2"/>
+                        Cancel Spot
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-sm text-muted-foreground space-y-2">

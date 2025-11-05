@@ -13,8 +13,9 @@ import { useUser } from "@/hooks/use-user";
 import { notifications as mockNotifications, users, rides, Notification } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, X, Car, Info } from 'lucide-react';
+import { Check, X, Car, Info, RadioTower } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function NotificationsPage() {
   const { user } = useUser();
@@ -106,8 +107,8 @@ export default function NotificationsPage() {
               </div>
               {notification.data.status === 'pending' ? (
                 <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleApprove(notification.id, notification.data.rideId, notification.data.requesterId)}><Check className="h-4 w-4 mr-1"/>Approve</Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDecline(notification.id, notification.data.rideId, notification.data.requesterId)}><X className="h-4 w-4 mr-1"/>Decline</Button>
+                    <Button size="sm" variant="outline" onClick={() => handleApprove(notification.id, notification.data.rideId, notification.data.requesterId)}><Check className="mr-1 h-4 w-4"/>Approve</Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDecline(notification.id, notification.data.rideId, notification.data.requesterId)}><X className="mr-1 h-4 w-4"/>Decline</Button>
                 </div>
               ) : (
                 <p className="text-sm font-medium text-muted-foreground">{notification.data.status === 'approved' ? 'Approved' : 'Declined'}</p>
@@ -116,17 +117,32 @@ export default function NotificationsPage() {
       )
   };
 
-  const renderRideUpdate = (notification: Notification) => (
-       <div className="flex items-start gap-4">
-          <Info className="h-10 w-10 text-primary" />
-          <div>
-            <p className="text-sm">{notification.message}</p>
-            <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
-            </p>
+  const renderRideUpdate = (notification: Notification) => {
+      const ride = rides.find(r => r.id === notification.data.rideId);
+      const isRideStarted = notification.message.includes('has started');
+
+      return (
+        <div className="flex items-start justify-between">
+           <div className="flex items-start gap-4">
+              {isRideStarted ? <Car className="h-10 w-10 text-primary" /> : <Info className="h-10 w-10 text-primary" />}
+              <div>
+                <p className="text-sm">{notification.message}</p>
+                <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                </p>
+              </div>
           </div>
+          {isRideStarted && ride && (
+              <Button asChild size="sm" variant="outline">
+                  <Link href={`/ride/${ride.id}/track`}>
+                      <RadioTower className="mr-2"/>
+                      Track
+                  </Link>
+              </Button>
+          )}
       </div>
-  );
+      )
+  };
 
   const renderNotification = (notification: Notification) => {
       switch(notification.type) {
