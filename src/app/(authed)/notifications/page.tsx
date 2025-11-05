@@ -14,7 +14,7 @@ import { useUser } from "@/hooks/use-user";
 import { notifications as mockNotifications, users, rides as mockRides, Ride, Notification } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { formatDistanceToNow } from 'date-fns';
-import { Check, X, Car, Info, RadioTower } from 'lucide-react';
+import { Check, X, Car, Info, RadioTower, Bell } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
@@ -220,5 +220,3 @@ export default function NotificationsPage() {
     </Card>
   );
 }
-
-    

@@ -18,6 +18,7 @@ import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, useEffect } from "react";
+import { startRide } from "../ride/actions";
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -54,21 +55,26 @@ export default function DashboardPage() {
   }, []);
 
   const handleStartRide = async (rideId: string) => {
-    const currentRides = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
-    const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
-    
-    if (rideIndex !== -1) {
-        currentRides[rideIndex].status = 'active';
-        localStorage.setItem("rides", JSON.stringify(currentRides));
-        window.dispatchEvent(new Event('storage')); // Manually trigger storage event for this window
-        toast({
-            title: "Ride Started!",
-            description: "Passengers have been notified.",
-        });
+    const result = await startRide(rideId);
+    if (result.success) {
+        const currentRides = JSON.parse(localStorage.getItem("rides") || JSON.stringify(mockRides)).map((r: any) => ({...r, departureTime: new Date(r.departureTime)}));
+        const rideIndex = currentRides.findIndex((r: Ride) => r.id === rideId);
+        
+        if (rideIndex !== -1) {
+            currentRides[rideIndex].status = 'active';
+            localStorage.setItem("rides", JSON.stringify(currentRides));
+            window.dispatchEvent(new Event('storage')); // Manually trigger storage event for this window
+            toast({
+                title: "Ride Started!",
+                description: "Passengers have been notified.",
+            });
+        } else {
+            toast({ title: "Error", description: "Ride not found", variant: "destructive" });
+        }
     } else {
-        toast({ title: "Error", description: "Ride not found", variant: "destructive" });
+        toast({ title: "Error", description: result.error, variant: "destructive" });
     }
-  };
+};
 
   const handleCancelSpot = async (rideId: string) => {
       if (!user) return;
@@ -247,5 +253,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
