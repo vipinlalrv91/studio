@@ -104,19 +104,19 @@ export default function FindRideTab() {
       const status = getRequestStatus(rideId);
       switch(status) {
           case 'approved':
-              return <Button disabled variant="secondary"><Check className="mr-2"/> Approved</Button>;
+              return <Button disabled variant="secondary"><Check className="mr-2 h-4 w-4"/> Approved</Button>;
           case 'declined':
-              return <Button disabled variant="destructive"><X className="mr-2"/> Declined</Button>;
+              return <Button disabled variant="destructive"><X className="mr-2 h-4 w-4"/> Declined</Button>;
           case 'pending':
-              return <Button disabled variant="outline"><Hourglass className="mr-2"/> Pending</Button>;
+              return <Button disabled variant="outline"><Hourglass className="mr-2 h-4 w-4"/> Pending</Button>;
           default:
               return <Button onClick={() => handleRequestJoin(rideId)}>Request Join</Button>;
       }
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-12">
-        <div className="md:col-span-8">
+    <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
             <Card>
                 <CardHeader>
                     <CardTitle>Find a Ride</CardTitle>
@@ -127,7 +127,7 @@ export default function FindRideTab() {
                         {availableRides.length > 0 ? availableRides.map((ride) => (
                         <Card key={ride.id}>
                             <CardHeader>
-                            <div className="flex justify-between items-start">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                                 <div>
                                 <CardTitle className="text-lg">{ride.startLocation} &rarr; {ride.destination}</CardTitle>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
@@ -138,37 +138,39 @@ export default function FindRideTab() {
                                     <span>{ride.driver.name}</span>
                                 </div>
                                 </div>
-                                {renderJoinButton(ride.id)}
+                                <div className="flex-shrink-0">
+                                  {renderJoinButton(ride.id)}
+                                </div>
                             </div>
                             </CardHeader>
                             <CardContent className="flex justify-between items-center text-sm">
-                            <div className="flex flex-col gap-2 text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    <span>{format(new Date(ride.departureTime), "E, MMM d 'at' h:mm a")}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Users className="h-4 w-4" />
-                                    <span>{ride.availableSeats} seats available</span>
-                                </div>
-                            </div>
-                            <Badge variant="secondary" className="hidden sm:inline-flex">
-                                {ride.passengers.length} / {ride.passengers.length + ride.availableSeats} filled
-                            </Badge>
+                              <div className="flex flex-col gap-2 text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                      <Clock className="h-4 w-4" />
+                                      <span>{format(new Date(ride.departureTime), "E, MMM d 'at' h:mm a")}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                      <Users className="h-4 w-4" />
+                                      <span>{ride.availableSeats} seats available</span>
+                                  </div>
+                              </div>
+                              <Badge variant="secondary" className="hidden sm:inline-flex items-center">
+                                  {ride.passengers.length} / {ride.passengers.length + ride.availableSeats} filled
+                              </Badge>
                             </CardContent>
                         </Card>
                         )) : (
-                            <div className="text-center py-10 text-muted-foreground">
+                            <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
                                 <Car className="mx-auto h-12 w-12" />
-                                <p className="mt-4">No available rides match your criteria right now.</p>
-                                <p>Try offering a ride instead!</p>
+                                <p className="mt-4 font-semibold">No available rides match your criteria right now.</p>
+                                <p className="text-sm">Try offering a ride instead!</p>
                             </div>
                         )}
                     </div>
                 </CardContent>
             </Card>
         </div>
-        <div className="md:col-span-4">
+        <div className="lg:col-span-1">
             <AiAssistantForm />
         </div>
     </div>

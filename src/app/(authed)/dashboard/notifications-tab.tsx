@@ -133,26 +133,26 @@ export default function NotificationsTab() {
       if (!requester) return null;
 
       return (
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex items-start gap-4">
-                  <Avatar className="h-10 w-10">
+                  <Avatar className="h-10 w-10 border">
                       <AvatarImage src={requester.avatarUrl} alt={requester.name} />
                       <AvatarFallback>{requester.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm">{notification.message}</p>
+                    <p className="text-sm font-medium">{notification.message}</p>
                     <p className="text-xs text-muted-foreground">
                         {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
                     </p>
                   </div>
               </div>
               {notification.data.status === 'pending' ? (
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0 self-end sm:self-auto">
                     <Button size="sm" variant="outline" onClick={() => handleApprove(notification)}><Check className="mr-1 h-4 w-4"/>Approve</Button>
                     <Button size="sm" variant="destructive" onClick={() => handleDecline(notification)}><X className="mr-1 h-4 w-4"/>Decline</Button>
                 </div>
               ) : (
-                <p className="text-sm font-medium text-muted-foreground capitalize">{notification.data.status}</p>
+                <p className="text-sm font-medium text-muted-foreground capitalize self-end sm:self-auto">{notification.data.status}</p>
               )}
           </div>
       )
@@ -163,20 +163,22 @@ export default function NotificationsTab() {
       const isRideStarted = notification.message.includes('has started');
 
       return (
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
            <div className="flex items-start gap-4">
-              {isRideStarted ? <Car className="h-10 w-10 text-primary" /> : <Info className="h-10 w-10 text-primary" />}
+              <Avatar className="h-10 w-10 border">
+                  <Car className="h-5 w-5 m-auto text-primary" />
+              </Avatar>
               <div>
-                <p className="text-sm">{notification.message}</p>
+                <p className="text-sm font-medium">{notification.message}</p>
                 <p className="text-xs text-muted-foreground">
                     {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
                 </p>
               </div>
           </div>
           {isRideStarted && ride && (
-              <Button asChild size="sm" variant="outline">
+              <Button asChild size="sm" variant="outline" className="self-end sm:self-auto">
                   <Link href={`/ride/${ride.id}/track`}>
-                      <RadioTower className="mr-2"/>
+                      <RadioTower className="mr-2 h-4 w-4"/>
                       Track
                   </Link>
               </Button>
@@ -205,15 +207,16 @@ export default function NotificationsTab() {
         {notifications.length > 0 ? (
             <div className="space-y-6">
                 {notifications.map(n => (
-                    <div key={n.id}>
+                    <div key={n.id} className="pb-6 border-b last:border-b-0 last:pb-0">
                        {renderNotification(n)}
                     </div>
                 ))}
             </div>
         ) : (
-            <div className="text-center py-10 text-muted-foreground">
+            <div className="text-center py-10 text-muted-foreground border-2 border-dashed rounded-lg">
                 <Bell className="mx-auto h-12 w-12" />
-                <p className="mt-4">No new notifications.</p>
+                <p className="mt-4 font-semibold">No new notifications.</p>
+                 <p className="text-sm">Check back later for updates on your rides.</p>
             </div>
         )}
       </CardContent>

@@ -89,10 +89,10 @@ export default function OfferRideTab() {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-            <Car /> Offer a New Ride
+            <Car className="h-6 w-6"/> Offer a New Ride
         </CardTitle>
         <CardDescription>
           Fill in the details below to share your ride with colleagues.
@@ -100,8 +100,8 @@ export default function OfferRideTab() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="grid md:grid-cols-2 gap-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="startLocation"
@@ -129,7 +129,7 @@ export default function OfferRideTab() {
                 )}
               />
             </div>
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
                 name="departureTime"
@@ -166,7 +166,6 @@ export default function OfferRideTab() {
                           initialFocus
                         />
                          <div className="p-3 border-t border-border">
-                          {/* Simple time picker - can be improved */}
                            <Input
                               type="time"
                               defaultValue={format(field.value || new Date(), 'HH:mm')}
@@ -198,7 +197,7 @@ export default function OfferRideTab() {
                 )}
               />
             </div>
-            <Button type="submit" className="w-full md:w-auto">Post Ride</Button>
+            <Button type="submit" className="w-full sm:w-auto">Post Ride</Button>
           </form>
         </Form>
       </CardContent>
