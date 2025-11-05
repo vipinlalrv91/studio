@@ -181,6 +181,8 @@ export default function FindRideTab() {
     }))
   ];
 
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   return (
     <div className="grid gap-6 lg:grid-cols-5">
       <div className="lg:col-span-3 relative">
@@ -188,7 +190,7 @@ export default function FindRideTab() {
           <CardContent className="h-full p-0 rounded-lg overflow-hidden">
            {userLocation ? (
               <Map 
-                apiKey="YOUR_GOOGLE_MAPS_API_KEY" 
+                apiKey={apiKey || ''} 
                 lat={userLocation.lat} 
                 lng={userLocation.lng} 
                 zoom={12} 
