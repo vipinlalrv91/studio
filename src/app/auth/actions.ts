@@ -20,7 +20,11 @@ export async function register(name, email, password) {
     const response = await axios.post(`${API_URL}/register`, { name, email, password });
     return response.data;
   } catch (error) {
-    console.error('Error registering:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('Error registering:', error.toJSON());
+    } else {
+      console.error('Error registering:', error);
+    }
     throw new Error('Failed to register.');
   }
 }
