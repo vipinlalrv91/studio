@@ -3,25 +3,55 @@
 
 import { carpoolMatchingAssistant } from '@/ai/flows/carpool-matching-assistant';
 import { AiInput } from '@/ai/flows/types';
-import { rides as mockRides, notifications as mockNotifications, Notification, Ride, User } from '@/lib/data';
+import { Ride, User } from '@/lib/data';
+import axios from 'axios';
 
-// This is a server-side representation. In a real app, you'd use a database.
-// For the purpose of this demo, we'll simulate the data store.
-let rides = [...mockRides];
-let notifications = [...mockNotifications];
+const API_URL = 'http://localhost:3001/api';
+
+// This is a server-side file, so you can't use localStorage.
+// You'll need to implement a proper way to handle authentication tokens,
+// for example, by using cookies. For this demo, we'll have to adjust
+// how we get the token. A proper implementation would be to get it from cookies.
+// For now, these functions that require auth will fail if called from server components
+// without passing a token.
+const getToken = () => {
+    // This is a placeholder. In a real app, you'd get the token from the request headers/cookies.
+    console.warn("getToken is a placeholder and will not work correctly on the server.");
+    if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem('token');
+    }
+    return null;
+};
 
 export async function findMatchingRides(query: string): Promise<{ success: boolean; rides?: Ride[]; error?: string; }> {
     console.log("Finding matching rides for query:", query);
     try {
-        const availableRides = rides.filter(r => r.status === 'upcoming');
+        const response = await axios.get(`${API_URL}/rides`);
+        const allRides: any[] = response.data;
+        
+        // The backend doesn't have a 'status' field, so we filter rides that are in the future.
+        const availableRides = allRides.filter((ride: any) => new Date(ride.departure_time) > new Date());
+        
+        // The AI flow expects a different data structure for rides. We need to adapt it.
+        // This is a temporary solution. The backend should ideally return the data in the expected format.
+        const formattedRides: Ride[] = availableRides.map((ride: any) => ({
+            id: ride.id.toString(),
+            driver: { id: ride.driver_id.toString(), name: 'Unknown Driver', avatar: '' }, // Fake driver info
+            startLocation: ride.origin,
+            destination: ride.destination,
+            departure: new Date(ride.departure_time),
+            availableSeats: ride.available_seats,
+            passengers: [], // Fake passengers info
+            status: 'upcoming' as const
+        }));
+
         const aiInput: AiInput = {
             query,
-            availableRides,
+            availableRides: formattedRides,
         };
         const result = await carpoolMatchingAssistant(aiInput);
         
-        // The assistant returns a list of ride IDs that are suggested matches.
-        const matchedRides = rides.filter(ride => result.suggestedMatches.some((match: any) => match.rideId === ride.id));
+        const matchedRides = formattedRides.filter(ride => result.suggestedMatches.some((match: any) => match.rideId.toString() === ride.id));
 
         console.log("AI suggested matches:", result.suggestedMatches);
         console.log("Matched rides from data:", matchedRides);
@@ -36,37 +66,89 @@ export async function findMatchingRides(query: string): Promise<{ success: boole
 export async function startRide(rideId: string): Promise<{ success: boolean; error?: string }> {
     console.log("Starting ride:", rideId);
 
-    const rideIndex = rides.findIndex(r => r.id === rideId);
-    if (rideIndex === -1) {
-        return { success: false, error: "Ride not found." };
-    }
+    // In a real app, you'd call a backend endpoint to update the ride status.
+    // The current backend doesn't have this endpoint, so we're just logging it.
+    console.warn("startRide is not fully implemented and does not update the backend.");
 
-    const ride = rides[rideIndex];
-    if (ride.status !== 'upcoming') {
-        return { success: false, error: "Ride has already started or is completed." };
-    }
-
-    // Update ride status
-    rides[rideIndex] = { ...ride, status: 'active' };
-
-    // Create notifications for passengers
-    const newNotifications: Notification[] = ride.passengers.map((passenger: User) => ({
-        id: `n${Date.now()}${Math.random()}`,
-        userId: passenger.id,
-        read: false,
-        message: `Your ride from ${ride.startLocation} to ${ride.destination} has started!`,
-        timestamp: new Date(),
-        type: 'ride-update',
-        data: { rideId: ride.id, status: 'started' }
-    }));
-
-    notifications = [...notifications, ...newNotifications];
-
-    console.log(`Ride ${rideId} started, ${newNotifications.length} notifications created.`);
-
-    // Note: In a real app, this state change would be persisted in a database
-    // and a push notification service would be triggered.
-    // For this demo, we're just updating the in-memory array. The client will poll or use local storage events.
+    // This is a mock implementation.
+    // In a real app, you would make a POST/PUT request to your backend to update the ride status.
+    // For example: await axios.post(`${API_URL}/rides/${rideId}/start`, {}, { headers: { Authorization: `Bearer ${getToken()}` } });
     
     return { success: true };
+}
+
+export async function getRides() {
+  try {
+    const response = await axios.get(`${API_URL}/rides`);
+    return response.data;
+  } catch (error) {
+    console.error('Error getting rides:', error);
+    throw new Error('Failed to get rides.');
+  }
+}
+
+export async function getRide(id: string) {
+  try {
+    const response = await axios.get(`${API_URL}/rides/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error(`Error getting ride ${id}:`, error);
+    throw new Error('Failed to get ride.');
+  }
+}
+
+export async function createRide(rideData: { origin: string; destination: string; departure_time: string; available_seats: number }) {
+  try {
+    const token = getToken();
+    if (!token) throw new Error("Authentication token not found.");
+    const response = await axios.post(`${API_URL}/rides`, rideData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating ride:', error);
+    throw new Error('Failed to create ride.');
+  }
+}
+
+export async function requestToJoinRide(rideId: string) {
+  try {
+    const token = getToken();
+    if (!token) throw new Error("Authentication token not found.");
+    const response = await axios.post(`${API_URL}/rides/${rideId}/request`, {}, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error requesting to join ride:', error);
+    throw new Error('Failed to request to join ride.');
+  }
+}
+
+export async function updateRideRequest(rideId: string, requestId: string, status: 'accepted' | 'rejected') {
+  try {
+    const token = getToken();
+    if (!token) throw new Error("Authentication token not found.");
+    const response = await axios.put(`${API_URL}/rides/${rideId}/requests/${requestId}`, { status }, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating ride request:', error);
+    throw new Error('Failed to update ride request.');
+  }
+}
+
+export async function getNotifications() {
+  try {
+    const token = getToken();
+    if (!token) throw new Error("Authentication token not found.");
+    const response = await axios.get(`${API_URL}/notifications`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error getting notifications:', error);
+    throw new Error('Failed to get notifications.');
+  }
 }

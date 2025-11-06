@@ -5,6 +5,7 @@ export type User = {
   name: string;
   department: string;
   avatarUrl: string;
+  token?: string;
 };
 
 export type Ride = {
