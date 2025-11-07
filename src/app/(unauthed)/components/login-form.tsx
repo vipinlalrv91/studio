@@ -27,7 +27,7 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await login(values.email, values.password);
+      const result = await login(values);
       // In a real app, you'd store the token and redirect.
       // For now, we'll just show a success message.
       toast({
