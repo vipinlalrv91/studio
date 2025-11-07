@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { register } from '@/app/auth/actions';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   name: z.string().min(2),
@@ -18,6 +19,7 @@ const formSchema = z.object({
 
 export function RegisterForm() {
   const { toast } = useToast();
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -29,13 +31,8 @@ export function RegisterForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await register(values);
-      // In a real app, you'd store the token and redirect.
-      // For now, we'll just show a success message.
-      toast({
-        title: "Registration Successful",
-        description: `Welcome! Token: ${result.token}`,
-      });
+      await register(values);
+      router.push('/dashboard');
     } catch (error) {
       toast({
         title: "Registration Failed",

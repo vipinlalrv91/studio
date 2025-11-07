@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { login } from '@/app/auth/actions';
+import { useRouter } from 'next/navigation';
 
 const formSchema = z.object({
   email: z.string().email(),
@@ -17,6 +18,7 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const { toast } = useToast();
+  const router = useRouter();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -27,13 +29,8 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const result = await login(values);
-      // In a real app, you'd store the token and redirect.
-      // For now, we'll just show a success message.
-      toast({
-        title: "Login Successful",
-        description: `Welcome back! Token: ${result.token}`,
-      });
+      await login(values);
+      router.push('/dashboard');
     } catch (error) {
       toast({
         title: "Login Failed",
