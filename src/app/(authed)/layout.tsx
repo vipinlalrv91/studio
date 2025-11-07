@@ -25,16 +25,22 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useUser } from "@/hooks/use-user";
 import { Logo } from "@/components/logo";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export default function AuthedLayout({ children }: { children: React.ReactNode }) {
-  const { user: mockUser } = useUser();
+  const { user, logout } = useUser();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentTab = searchParams.get('tab');
 
-  if (!mockUser) return null; // Or a loading state
+  if (!user) return null; // Or a loading state
+
+  const handleLogout = () => {
+      logout();
+      router.push('/login');
+  }
 
   const navItems = [
     { href: "/dashboard", icon: Home, label: "Dashboard", tab: null },
@@ -147,8 +153,8 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
             <DropdownMenuTrigger asChild>
               <Button variant="secondary" size="icon" className="rounded-full">
                 <Avatar className="h-8 w-8">
-                    <AvatarImage src={mockUser.avatarUrl} alt={mockUser.name} />
-                    <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <span className="sr-only">Toggle user menu</span>
               </Button>
@@ -159,7 +165,7 @@ export default function AuthedLayout({ children }: { children: React.ReactNode }
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild><Link href="/"><LogOut className="mr-2 h-4 w-4"/>Log out</Link></DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}><LogOut className="mr-2 h-4 w-4"/>Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

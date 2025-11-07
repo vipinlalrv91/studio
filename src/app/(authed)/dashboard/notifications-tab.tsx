@@ -19,19 +19,13 @@ import { useToast } from '@/hooks/use-toast';
 import { getNotifications, updateRideRequest } from "../ride/actions";
 
 export default function NotificationsTab() {
-  const { user } = useUser();
+  const { user, token } = useUser();
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const fetchNotifications = async () => {
-    if (!user) return;
-    
-    const token = localStorage.getItem("token");
-    if (!token) {
-        toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
-        return;
-    }
+    if (!user || !token) return;
 
     try {
       const fetchedNotifs = await getNotifications(token);
@@ -59,11 +53,10 @@ export default function NotificationsTab() {
 
   useEffect(() => {
     fetchNotifications();
-  }, [user]);
+  }, [user, token]);
 
   const handleRequestUpdate = (notification: Notification, status: 'accepted' | 'rejected') => {
     startTransition(async () => {
-        const token = localStorage.getItem("token");
         if (!token) {
             toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
             return;

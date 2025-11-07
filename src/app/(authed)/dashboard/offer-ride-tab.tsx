@@ -44,7 +44,7 @@ const rideSchema = z.object({
 
 export default function OfferRideTab() {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, token } = useUser();
   const router = useRouter();
   const form = useForm<z.infer<typeof rideSchema>>({
     resolver: zodResolver(rideSchema),
@@ -57,14 +57,8 @@ export default function OfferRideTab() {
   });
 
   async function onSubmit(values: z.infer<typeof rideSchema>) {
-    if (!user) {
+    if (!user || !token) {
         toast({ title: "Error", description: "You must be logged in to offer a ride.", variant: "destructive" });
-        return;
-    }
-    
-    const token = localStorage.getItem("token");
-    if (!token) {
-        toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
         return;
     }
 

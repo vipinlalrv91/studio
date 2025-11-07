@@ -23,7 +23,7 @@ import { getRides, findMatchingRides, requestToJoinRide } from "../ride/actions"
 
 export default function FindRideTab() {
   const { toast } = useToast();
-  const { user } = useUser();
+  const { user, token } = useUser();
   const [isPending, startTransition] = useTransition();
   const [rides, setRides] = useState<Ride[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -105,11 +105,8 @@ export default function FindRideTab() {
   };
 
   const handleRequestJoin = async (rideId: string) => {
-    if (!user) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-        toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
+    if (!user || !token) {
+        toast({ title: "Error", description: "You must be logged in to request a ride.", variant: "destructive" });
         return;
     }
 
