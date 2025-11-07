@@ -61,6 +61,12 @@ export default function OfferRideTab() {
         toast({ title: "Error", description: "You must be logged in to offer a ride.", variant: "destructive" });
         return;
     }
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+        toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
+        return;
+    }
 
     try {
       await createRide({
@@ -68,7 +74,7 @@ export default function OfferRideTab() {
         destination: values.destination,
         departure_time: values.departureTime.toISOString(),
         available_seats: values.availableSeats,
-      });
+      }, token);
       toast({
         title: "Ride Offered!",
         description: `Your ride from ${values.startLocation} to ${values.destination} has been posted.`,

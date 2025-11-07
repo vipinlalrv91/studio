@@ -106,8 +106,15 @@ export default function FindRideTab() {
 
   const handleRequestJoin = async (rideId: string) => {
     if (!user) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+        toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
+        return;
+    }
+
     try {
-      await requestToJoinRide(rideId);
+      await requestToJoinRide(rideId, token);
       toast({
         title: "Request Sent!",
         description: "Your request to join the ride has been sent to the driver.",
