@@ -3,11 +3,12 @@
 
 import axios from 'axios';
 
-
+// Hardcode the backend URL for absolute certainty
+const API_URL = 'http://localhost:3001/api';
 
 export async function login({ email, password }) {
   try {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/login`, { email, password });
+    const response = await axios.post(`${API_URL}/login`, { email, password });
     return response.data;
   } catch (error) {
     console.error('Error logging in:', error);
@@ -17,13 +18,17 @@ export async function login({ email, password }) {
 
 export async function register({ name, email, password }) {
   try {
-    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/register`, { name, email, password });
+    // Log the URL to the server console for debugging
+    console.log(`Attempting to register at: ${API_URL}/register`); 
+
+    const response = await axios.post(`${API_URL}/register`, { name, email, password });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error('Error registering:', error.toJSON());
+      // Log the detailed Axios error to the server console
+      console.error('Axios error registering:', error.toJSON());
     } else {
-      console.error('Error registering:', error);
+      console.error('Generic error registering:', error);
     }
     throw new Error('Failed to register.');
   }
