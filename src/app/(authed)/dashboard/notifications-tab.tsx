@@ -26,8 +26,15 @@ export default function NotificationsTab() {
 
   const fetchNotifications = async () => {
     if (!user) return;
+    
+    const token = localStorage.getItem("token");
+    if (!token) {
+        toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
+        return;
+    }
+
     try {
-      const fetchedNotifs = await getNotifications();
+      const fetchedNotifs = await getNotifications(token);
       const formattedNotifs = fetchedNotifs.map((n: any) => ({
         id: n.id,
         userId: n.user_id,
@@ -56,8 +63,14 @@ export default function NotificationsTab() {
 
   const handleRequestUpdate = (notification: Notification, status: 'accepted' | 'rejected') => {
     startTransition(async () => {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            toast({ title: "Error", description: "Authentication token not found.", variant: "destructive" });
+            return;
+        }
+
       try {
-        await updateRideRequest(notification.data.rideId, notification.data.requestId, status);
+        await updateRideRequest(notification.data.rideId, notification.data.requestId, status, token);
         toast({ title: `Request ${status === 'accepted' ? 'Approved' : 'Declined'}` });
         fetchNotifications(); // Refresh notifications
       } catch (error) {
