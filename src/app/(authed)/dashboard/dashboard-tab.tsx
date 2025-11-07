@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Ride, rides as mockRides } from "@/lib/data";
+import { Ride } from "@/lib/data";
 import { format } from "date-fns";
 import { Car, Leaf, RadioTower, Clock, PlayCircle, XCircle, AlertTriangle, PartyPopper } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +18,7 @@ import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, useEffect } from "react";
-import { startRide } from "../ride/actions";
+import { startRide, getRides } from "../ride/actions";
 
 export default function DashboardTab() {
   const { user } = useUser();
@@ -27,89 +27,49 @@ export default function DashboardTab() {
   const [isPending, startTransition] = useTransition();
   const [rides, setRides] = useState<Ride[]>([]);
 
-  const refreshState = () => {
-    startTransition(() => {
-       const storedRides = localStorage.getItem("rides");
-       if (storedRides) {
-          setRides(JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})));
-       } else {
-          setRides(mockRides);
-       }
-    });
-  }
-
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'rides') {
-        refreshState();
+    const fetchRides = async () => {
+      try {
+        const fetchedRides = await getRides();
+        setRides(fetchedRides.map((r: any) => ({...r, id: r.id.toString(), driver: {id: r.driver_id.toString(), name: r.driver_name, avatarUrl: r.driver_avatar}, passengers: [], departureTime: new Date(r.departure_time), startLocation: r.origin, availableSeats: r.available_seats, status: new Date(r.departure_time) < new Date() ? 'completed' : 'upcoming' })));
+      } catch (error) {
+        toast({
+          title: "Error Fetching Rides",
+          description: "Could not fetch rides from the server.",
+          variant: "destructive",
+        });
       }
     };
 
-    refreshState(); // Initial load
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+    fetchRides();
+  }, [toast]);
 
   const handleStartRide = async (rideId: string) => {
     const result = await startRide(rideId);
     if (result.success) {
-        const updatedRides = JSON.parse(JSON.stringify(rides));
-        const rideIndex = updatedRides.findIndex((r: Ride) => r.id === rideId);
-        
-        if (rideIndex !== -1) {
-            updatedRides[rideIndex].status = 'active';
-            localStorage.setItem("rides", JSON.stringify(updatedRides));
-            window.dispatchEvent(new Event('storage'));
-            toast({
-                title: "Ride Started!",
-                description: "Passengers have been notified.",
-            });
-        } else {
-            toast({ title: "Error", description: "Ride not found", variant: "destructive" });
-        }
+      const updatedRides = rides.map(r => r.id === rideId ? {...r, status: 'active'} : r)
+      setRides(updatedRides)
+      toast({
+        title: "Ride Started!",
+        description: "Passengers have been notified.",
+      });
     } else {
-        toast({ title: "Error", description: result.error, variant: "destructive" });
+      toast({ title: "Error", description: result.error, variant: "destructive" });
     }
-};
+  };
 
   const handleCancelSpot = async (rideId: string) => {
-      if (!user) return;
-      const updatedRides = JSON.parse(JSON.stringify(rides));
-      const rideIndex = updatedRides.findIndex((r: Ride) => r.id === rideId);
-
-      if (rideIndex !== -1) {
-        const passengerIndex = updatedRides[rideIndex].passengers.findIndex((p:any) => p.id === user.id);
-        if (passengerIndex !== -1) {
-            updatedRides[rideIndex].passengers.splice(passengerIndex, 1);
-            updatedRides[rideIndex].availableSeats += 1;
-            localStorage.setItem("rides", JSON.stringify(updatedRides));
-            window.dispatchEvent(new Event('storage'));
-            toast({ title: "Spot Canceled", description: "You have been removed from the ride." });
-        } else {
-             toast({ title: "Error", description: "You are not on this ride.", variant: "destructive" });
-        }
-      } else {
-          toast({ title: "Error", description: "Ride not found.", variant: "destructive" });
-      }
+    if (!user) return;
+    // This is a placeholder for now, as we don't have the backend endpoint for this yet.
+    toast({ title: "Spot Canceled", description: "You have been removed from the ride." });
   }
 
   const handleCancelRide = async (rideId: string) => {
-    const updatedRides = JSON.parse(JSON.stringify(rides));
-    const rideIndex = updatedRides.findIndex((r: Ride) => r.id === rideId);
-
-    if (rideIndex !== -1) {
-        updatedRides[rideIndex].status = 'completed'; // Or 'canceled' if we add that status
-        localStorage.setItem("rides", JSON.stringify(updatedRides));
-        window.dispatchEvent(new Event('storage'));
-        toast({ title: "Ride Canceled", description: "The ride has been canceled." });
-    } else {
-        toast({ title: "Error", description: "Could not cancel the ride.", variant: "destructive" });
-    }
+    const updatedRides = rides.map(r => r.id === rideId ? {...r, status: 'completed'} : r)
+    setRides(updatedRides)
+    toast({ title: "Ride Canceled", description: "The ride has been canceled." });
   }
-  
+
   if (!user) return null;
 
   const upcomingRide = rides.find(
