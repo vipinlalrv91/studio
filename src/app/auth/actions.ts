@@ -3,11 +3,11 @@
 
 import axios from 'axios';
 
-const API_URL = '/api';
+
 
 export async function login({ email, password }) {
   try {
-    const response = await axios.post(`${API_URL}/login`, { email, password });
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/login`, { email, password });
     return response.data;
   } catch (error) {
     console.error('Error logging in:', error);
@@ -17,7 +17,7 @@ export async function login({ email, password }) {
 
 export async function register({ name, email, password }) {
   try {
-    const response = await axios.post(`${API_URL}/register`, { name, email, password });
+    const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/register`, { name, email, password });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
