@@ -29,17 +29,28 @@ import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export default function AuthedLayout({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useUser();
+  const { user, logout, isLoading } = useUser();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentTab = searchParams.get('tab');
 
-  if (!user) return null; // Or a loading state
-
   const handleLogout = () => {
       logout();
       router.push('/login');
+  }
+
+  if (isLoading) {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+        </div>
+    );
+  }
+
+  if (!user) {
+    router.push('/login');
+    return null;
   }
 
   const navItems = [

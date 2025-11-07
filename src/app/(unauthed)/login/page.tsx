@@ -24,7 +24,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${API_URL}/auth/login`, { email, password });
+      const response = await axios.post(`${API_URL}/login`, { email, password });
       const { token, user } = response.data;
       login(user, token);
       toast({ title: "Login Successful", description: "Welcome back!" });
