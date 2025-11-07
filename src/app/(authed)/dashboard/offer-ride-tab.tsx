@@ -32,7 +32,7 @@ import { format } from "date-fns";
 import { CalendarIcon, Car } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import { Ride, rides as mockRides } from "@/lib/data";
+import { createRide } from "../ride/actions";
 import { useRouter } from "next/navigation";
 
 const rideSchema = z.object({
@@ -56,36 +56,32 @@ export default function OfferRideTab() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof rideSchema>) {
+  async function onSubmit(values: z.infer<typeof rideSchema>) {
     if (!user) {
         toast({ title: "Error", description: "You must be logged in to offer a ride.", variant: "destructive" });
         return;
     }
 
-    const storedRides = localStorage.getItem('rides');
-    const currentRides: Ride[] = storedRides ? JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})) : mockRides;
-    
-    const newRide: Ride = {
-        id: `r${Date.now()}`,
-        driver: user,
-        startLocation: values.startLocation,
+    try {
+      await createRide({
+        origin: values.startLocation,
         destination: values.destination,
-        departureTime: values.departureTime,
-        availableSeats: values.availableSeats,
-        passengers: [],
-        status: 'upcoming'
-    };
-
-    const updatedRides = [...currentRides, newRide];
-    localStorage.setItem('rides', JSON.stringify(updatedRides));
-    window.dispatchEvent(new Event('storage')); // Manually trigger to update other components
-
-    toast({
-      title: "Ride Offered!",
-      description: `Your ride from ${values.startLocation} to ${values.destination} has been posted.`,
-    });
-    form.reset();
-    router.push("/dashboard");
+        departure_time: values.departureTime.toISOString(),
+        available_seats: values.availableSeats,
+      });
+      toast({
+        title: "Ride Offered!",
+        description: `Your ride from ${values.startLocation} to ${values.destination} has been posted.`,
+      });
+      form.reset();
+      router.push("/dashboard");
+    } catch (error) {
+      toast({
+        title: "Error Offering Ride",
+        description: "Could not post your ride to the server.",
+        variant: "destructive",
+      });
+    }
   }
 
   return (

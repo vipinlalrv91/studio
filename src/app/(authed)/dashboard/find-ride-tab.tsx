@@ -11,24 +11,42 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Ride, rides as mockRides, notifications as mockNotifications, Notification } from "@/lib/data";
+import { Ride, Notification } from "@/lib/data";
 import { format } from "date-fns";
 import { Car, Users, Clock, Check, Hourglass, X, LocateFixed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import AiAssistantForm from "../components/ai-assistant-form";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/hooks/use-user";
-import Map from "@/components/map"; 
+import Map from "@/components/map";
+import { getRides, findMatchingRides, requestToJoinRide } from "../ride/actions";
 
 export default function FindRideTab() {
   const { toast } = useToast();
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
-  const [currentRides, setCurrentRides] = useState<Ride[]>([]);
-  const [currentNotifications, setCurrentNotifications] = useState<Notification[]>([]);
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [isLive, setIsLive] = useState(false);
   const watchId = useRef<number | null>(null);
+
+  useEffect(() => {
+    const fetchRides = async () => {
+      try {
+        const fetchedRides = await getRides();
+        setRides(fetchedRides.map((r: any) => ({...r, id: r.id.toString(), driver: {id: r.driver_id.toString(), name: r.driver_name, avatarUrl: r.driver_avatar}, passengers: [], departureTime: new Date(r.departure_time), startLocation: r.origin, availableSeats: r.available_seats, status: new Date(r.departure_time) < new Date() ? 'completed' : 'upcoming', startLocationCoords: { lat: parseFloat(r.origin_lat), lng: parseFloat(r.origin_lng) } })));
+      } catch (error) {
+        toast({
+          title: "Error Fetching Rides",
+          description: "Could not fetch rides from the server.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchRides();
+  }, [toast]);
 
   useEffect(() => {
     const getLocation = () => {
@@ -39,7 +57,7 @@ export default function FindRideTab() {
                 lng: position.coords.longitude
                 });
             }, () => {
-                setUserLocation({ lat: 34.052235, lng: -118.243683 }); 
+                setUserLocation({ lat: 34.052235, lng: -118.243683 });
                 toast({ title: "Location access denied.", description: "Showing default location.", variant: "destructive" });
             });
         } else {
@@ -73,83 +91,45 @@ export default function FindRideTab() {
       }
     }
   }, [isLive]);
-  
-  const refreshState = () => {
-    startTransition(() => {
-      const storedNotifications = localStorage.getItem('notifications');
-      // Forcibly clear local storage for rides to ensure new data structure is used.
-      // This is a temporary fix for development. In a real app, you'd handle this with a migration.
-      localStorage.removeItem('rides');
-      const storedRides = localStorage.getItem('rides');
-      
-      setCurrentNotifications(storedNotifications ? JSON.parse(storedNotifications) : mockNotifications);
-      setCurrentRides(storedRides ? JSON.parse(storedRides).map((r: any) => ({...r, departureTime: new Date(r.departureTime)})) : mockRides);
+
+  const handleSearch = async (query: string) => {
+    startTransition(async () => {
+      const result = await findMatchingRides(query);
+      if (result.success && result.rides) {
+        setRides(result.rides);
+        toast({ title: "Search Complete", description: "Found matching rides based on your query." });
+      } else {
+        toast({ title: "Search Failed", description: result.error, variant: "destructive" });
+      }
     });
   };
 
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-        if (e.key === 'rides' || e.key === 'notifications') {
-            refreshState();
-        }
-    };
-
-    refreshState();
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-        window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
-
-  const handleRequestJoin = (rideId: string) => {
+  const handleRequestJoin = async (rideId: string) => {
     if (!user) return;
-    const ride = currentRides.find(r => r.id === rideId);
-    
-    if (ride) {
-        const allNotifications = JSON.parse(localStorage.getItem('notifications') || JSON.stringify(mockNotifications));
-        
-        const existingNotification = allNotifications.find((n: Notification) => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
-        if (existingNotification) {
-             toast({
-                title: "Request already sent!",
-                description: "You have already requested to join this ride.",
-                variant: "destructive"
-            });
-            return;
-        }
-
-        const newNotification: Notification = {
-            id: `n${Date.now()}`,
-            userId: ride.driver.id,
-            read: false,
-            message: `${user.name} wants to join your ride from ${ride.startLocation} to ${ride.destination}.`,
-            timestamp: new Date(),
-            type: 'ride-request',
-            data: { rideId: ride.id, requesterId: user.id, status: 'pending' }
-        };
-        
-        const updatedNotifications = [...allNotifications, newNotification];
-        localStorage.setItem('notifications', JSON.stringify(updatedNotifications));
-        window.dispatchEvent(new Event('storage'));
-        
-        toast({
-          title: "Request Sent!",
-          description: "Your request to join the ride has been sent to the driver.",
-        });
+    try {
+      await requestToJoinRide(rideId);
+      toast({
+        title: "Request Sent!",
+        description: "Your request to join the ride has been sent to the driver.",
+      });
+    } catch (error) {
+      toast({
+        title: "Request Failed",
+        description: "Could not send a request to join this ride.",
+        variant: "destructive",
+      });
     }
   }
 
   const getRequestStatus = (rideId: string) => {
       if (!user) return null;
-      const notification = currentNotifications.find(n => n.type === 'ride-request' && n.data.rideId === rideId && n.data.requesterId === user.id);
-      return notification ? notification.data.status : null;
+      // This is a placeholder for now. We need to fetch the notifications from the backend.
+      return null;
   }
 
   if (!user) return null;
 
-  const availableRides = currentRides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id && ride.startLocationCoords);
+  const availableRides = rides.filter((ride) => ride.status === "upcoming" && ride.availableSeats > 0 && ride.driver.id !== user.id && ride.startLocationCoords);
 
   const renderJoinButton = (rideId: string) => {
       const status = getRequestStatus(rideId);
@@ -213,7 +193,7 @@ export default function FindRideTab() {
         </Button>
       </div>
       <div className="lg:col-span-2 space-y-6">
-        <AiAssistantForm />
+        <AiAssistantForm onSearch={handleSearch} isSearching={isPending} />
         <Card>
             <CardHeader>
                 <CardTitle>Find a Ride</CardTitle>
@@ -252,7 +232,8 @@ export default function FindRideTab() {
                               </div>
                           </div>
                           <Badge variant="secondary" className="hidden sm:inline-flex items-center">
-                              {ride.passengers.length} / {ride.passengers.length + ride.availableSeats} filled
+                              {/* This passenger count is not accurate yet. It will be fixed when we fetch the full ride details. */}
+                              0 / {ride.availableSeats}
                           </Badge>
                         </CardContent>
                     </Card>
